@@ -1,0 +1,37 @@
+/* Svatba — Colour tokens
+   Warm, earthy wedding palette: cream base, terracotta accents. */
+:root {
+  /* Base surfaces */
+  --bg: #f3e9df;              /* warm cream page base */
+  --bg-2: #fffaf4;            /* lightest cream */
+  --card: rgba(255, 255, 255, 0.72);   /* glassy card fill */
+  --card-solid: #fffaf4;
+  --card-border: rgba(88, 61, 39, 0.14);
+
+  /* Ink */
+  --text: #2d1f17;           /* espresso body text */
+  --muted: #6d5a4f;          /* warm taupe secondary */
+
+  /* Brand accents */
+  --accent: #9b4f2f;         /* terracotta */
+  --accent-strong: #bf6e4c;  /* lighter terracotta (gradient pair) */
+  --accent-2: #e49c7f;       /* peach / clay */
+
+  /* Semantic */
+  --good: #2e7d5b;           /* sage green — confirmed / paid */
+  --warn: #b16c1d;           /* amber — pending / deadline */
+  --danger: #a03636;         /* brick red — errors / delete */
+
+  /* Tinted fills (used behind tags/chips) */
+  --accent-tint: rgba(155, 79, 47, 0.12);
+  --good-tint: rgba(46, 125, 91, 0.12);
+  --warn-tint: rgba(177, 108, 29, 0.12);
+
+  /* ---- Semantic aliases ---- */
+  --text-body: var(--text);
+  --text-muted: var(--muted);
+  --surface-page: var(--bg);
+  --surface-card: var(--card);
+  --border-hairline: var(--card-border);
+  --brand: var(--accent);
+}

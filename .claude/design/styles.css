@@ -1,0 +1,7 @@
+/* Svatba — Angie & Tomi Design System
+   Global entry point. Consumers link this one file. */
+@import url('./tokens/fonts.css');
+@import url('./tokens/colors.css');
+@import url('./tokens/typography.css');
+@import url('./tokens/spacing.css');
+@import url('./tokens/effects.css');

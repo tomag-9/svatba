@@ -1,0 +1,30 @@
+/* Svatba — Typography tokens
+   Cormorant Garamond (display serif) + Manrope (UI sans). */
+:root {
+  --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Manrope', system-ui, Arial, Helvetica, sans-serif;
+
+  /* Type scale (fluid where the app uses clamp) */
+  --text-display: clamp(2.4rem, 5vw, 4.8rem);  /* h1 hero — serif */
+  --text-h2: 1.5rem;         /* panel headings — serif */
+  --text-metric: 2rem;       /* metric numbers — serif */
+  --text-lede: 1.05rem;      /* intro paragraph */
+  --text-body-size: 1rem;
+  --text-small: 0.9rem;
+  --text-tag: 0.78rem;       /* tags, eyebrows */
+
+  /* Weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Tracking */
+  --tracking-display: -0.03em;   /* tight serif headlines */
+  --tracking-eyebrow: 0.22em;    /* wide uppercase labels */
+  --tracking-tag: 0.08em;
+
+  /* Line heights */
+  --leading-display: 0.95;
+  --leading-body: 1.6;
+}

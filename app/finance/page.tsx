@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/app-shell';
+import { CategoryIcon } from '@/components/category-icon';
 import { DeleteEntityButton } from '@/components/delete-entity-button';
 import { ExpenseCreateForm } from '@/components/expense-create-form';
 import { prisma } from '@/lib/prisma';
@@ -16,42 +17,23 @@ export default async function FinancePage() {
 
   const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   const budgetTarget = settings?.budgetTarget ? Number(settings.budgetTarget) : null;
-  const remaining = budgetTarget === null ? null : budgetTarget - total;
+  const budgetPercent = budgetTarget ? Math.min(100, Math.round((total / budgetTarget) * 100)) : 0;
+  const currency = settings?.currency ?? 'EUR';
 
   return (
     <AppShell
       eyebrow="Rozpočet"
-      title="Výdavky a rozpočet"
-      description="Prehľad plánovaných výdavkov, zaplatených položiek a celkového rozpočtu."
+      title="Výdavky"
     >
-      <section className="metric-grid">
-        <article className="metric-card">
-          <span className="tag">Spolu</span>
-          <strong>{total} EUR</strong>
-        </article>
-        <article className="metric-card">
-          <span className="tag good">Zaplatené</span>
-          <strong>{expenses.filter((expense) => expense.isPaid).length}</strong>
-        </article>
-        <article className="metric-card">
-          <span className="tag warn">Nezaplatené</span>
-          <strong>{expenses.filter((expense) => !expense.isPaid).length}</strong>
-        </article>
-        <article className="metric-card">
-          <span className="tag">Mena</span>
-          <strong>{settings?.currency ?? 'EUR'}</strong>
-        </article>
-        <article className="metric-card">
-          <span className="tag">Cieľ</span>
-          <strong>{budgetTarget === null ? '—' : `${budgetTarget} EUR`}</strong>
-        </article>
-        <article className="metric-card">
-          <span className="tag">Zostáva</span>
-          <strong>{remaining === null ? '—' : `${remaining} EUR`}</strong>
-        </article>
+      <section className="panel budget-hero">
+        <div className="budget-total">{total.toFixed(0)} {currency}</div>
+        <div className="compact-meta">z {budgetTarget?.toFixed(0) ?? '—'} {currency} cieľa</div>
+        <div className="progress-track" style={{ height: 9, marginTop: 10 }}>
+          <div className={`progress-fill ${budgetPercent > 90 ? 'danger' : ''}`} style={{ width: `${budgetPercent}%` }} />
+        </div>
       </section>
 
-      <article className="panel">
+      <article className="panel" id="add-expense">
         <h2>Pridať výdavok</h2>
         <ExpenseCreateForm />
       </article>
@@ -64,12 +46,12 @@ export default async function FinancePage() {
         <div className="table-list">
           {expenses.map((expense) => (
             <div className="table-row" key={expense.id}>
-              <div>
+              <CategoryIcon category={expense.category} size={32} />
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <Link className="row-title row-link" href={`/finance/${expense.id}`}>
                   {expense.title}
                 </Link>
-                <div className="lede" style={{ margin: '6px 0 0' }}>{expense.category}</div>
-                {expense.vendor ? <div className="lede" style={{ margin: '6px 0 0' }}>Dodávateľ: {expense.vendor}</div> : null}
+                <div className="compact-meta">{expense.vendor || expense.category}</div>
               </div>
               <div className="item-actions">
                 <span className={`tag ${expense.isPaid ? 'good' : 'warn'}`}>

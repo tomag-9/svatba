@@ -34,4 +34,4 @@ const prisma = new PrismaClient();
 NODE
 
 echo "Starting Next.js server..."
-node server.js
+./node_modules/.bin/next start

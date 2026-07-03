@@ -3,8 +3,8 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
-COPY package.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -15,7 +15,8 @@ RUN npm run build
 FROM base AS runner
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=builder /app/.next/standalone ./
+COPY package.json ./
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma

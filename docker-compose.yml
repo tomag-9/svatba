@@ -1,21 +1,46 @@
 services:
   web:
-    build: .
-    ports:
-      - "3001:3000"
-    env_file:
-      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: svatba-app
+    restart: unless-stopped
+    expose:
+      - "3000"
     environment:
-      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/svatba?schema=public}
+      WEDDING_APP_PASSWORD: ${WEDDING_APP_PASSWORD}
+      AUTH_SECRET: ${AUTH_SECRET}
+      WEB_PUSH_VAPID_SUBJECT: ${WEB_PUSH_VAPID_SUBJECT:-mailto:hello@example.com}
+      WEB_PUSH_VAPID_PUBLIC_KEY: ${WEB_PUSH_VAPID_PUBLIC_KEY:-}
+      WEB_PUSH_VAPID_PRIVATE_KEY: ${WEB_PUSH_VAPID_PRIVATE_KEY:-}
+      TZ: Europe/Bratislava
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.svatba-http.rule=Host(`at.tomag.xyz`)"
+      - "traefik.http.routers.svatba-http.entrypoints=web"
+      - "traefik.http.routers.svatba-http.service=svatba"
+      - "traefik.http.routers.svatba-https.rule=Host(`at.tomag.xyz`)"
+      - "traefik.http.routers.svatba-https.entrypoints=websecure"
+      - "traefik.http.routers.svatba-https.tls=true"
+      - "traefik.http.routers.svatba-https.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.svatba-https.service=svatba"
+      - "traefik.http.services.svatba.loadbalancer.server.port=3000"
+    networks:
+      - default
+      - dokploy-network
 
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -30,3 +55,7 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  dokploy-network:
+    external: true

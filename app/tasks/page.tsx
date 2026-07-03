@@ -1,4 +1,5 @@
 import { AppShell } from '@/components/app-shell';
+import { CategoryIcon } from '@/components/category-icon';
 import { DeleteEntityButton } from '@/components/delete-entity-button';
 import { TaskCreateForm } from '@/components/task-create-form';
 import { taskPriorityLabels, taskStatusLabels } from '@/lib/labels';
@@ -35,11 +36,10 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
     <AppShell
       eyebrow="Úlohy"
       title="Úlohy a deadline"
-      description="Prvé jadro CRUD sekcie pre plánovanie všetkých svadobných krokov."
     >
       <article className="panel">
         <h2>Filtre</h2>
-        <div className="chip-row">
+        <div className="chip-row chip-row-scroll">
           {['ALL', 'TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED'].map((value) => (
             <Link key={value} href={activeLink('status', value)} className={`chip ${status === value ? 'active' : ''}`}>
               {value === 'ALL' ? 'Všetko' : taskStatusLabels[value as keyof typeof taskStatusLabels]}
@@ -55,7 +55,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         </div>
       </article>
 
-      <article className="panel">
+      <article className="panel" id="add-task">
         <h2>Pridať úlohu</h2>
         <TaskCreateForm />
       </article>
@@ -66,24 +66,19 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         <div className="table-list">
           {filteredTasks.map((task) => (
             <div className="table-row" key={task.id}>
-              <div>
+              <CategoryIcon category={task.category} size={32} />
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <Link className="row-title row-link" href={`/tasks/${task.id}`}>
                   {task.title}
                 </Link>
-                <div className="lede" style={{ margin: '6px 0 0' }}>
-                  {task.category} · {task.phase}
+                <div className="compact-meta">
+                  {task.category} · {task.deadline ? task.deadline.toISOString().slice(0, 10) : 'Bez termínu'}
                 </div>
                 {task.notes ? <div className="task-note-preview">{task.notes}</div> : null}
               </div>
               <div className="item-actions">
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <span className="tag">{taskStatusLabels[task.status]}</span>
-                  <span className={`tag ${task.priority === 'HIGH' ? 'warn' : task.priority === 'MEDIUM' ? '' : 'good'}`}>
-                    {taskPriorityLabels[task.priority]}
-                  </span>
-                </div>
-                <div className="lede" style={{ margin: '8px 0 0' }}>
-                  {task.deadline ? task.deadline.toISOString().slice(0, 10) : 'Bez termínu'}
                 </div>
                 <div className="item-action-row">
                   <Link className="button button-ghost" href={`/tasks/${task.id}`}>

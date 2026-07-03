@@ -1,0 +1,28 @@
+/* Svatba — Spacing, radius & layout tokens */
+:root {
+  /* Spacing scale (px, matches app rhythm) */
+  --space-1: 6px;
+  --space-2: 8px;
+  --space-3: 10px;
+  --space-4: 12px;
+  --space-5: 14px;
+  --space-6: 16px;
+  --space-7: 18px;
+  --space-8: 20px;
+  --space-9: 24px;
+
+  /* Corner radii */
+  --radius: 26px;            /* cards / panels */
+  --radius-row: 18px;        /* list rows */
+  --radius-input: 16px;      /* inputs, selects */
+  --radius-pill: 999px;      /* buttons, chips, tags */
+
+  /* Layout */
+  --page-max: 1180px;
+  --page-narrow: 760px;
+  --mobile-nav-height: 78px;
+
+  /* Control sizing (mobile-first hit targets) */
+  --control-min: 44px;
+  --input-min: 48px;
+}

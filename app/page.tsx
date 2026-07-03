@@ -15,7 +15,9 @@ export default async function HomePage() {
     <div className="login-wrap">
       <div className="login-shell">
         <section className="hero-card hero-copy">
-          <h1>Angie & Tomi</h1>
+          <img className="login-mark" src="/icon.svg" alt="" />
+          <p className="eyebrow">Svadobný plánovač</p>
+          <h1>Svadba bez chaosu.</h1>
         </section>
         <LoginForm />
       </div>

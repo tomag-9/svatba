@@ -11,7 +11,7 @@ const navItems = [
   { href: '/settings', label: navLabels.settings }
 ];
 
-export function AppShell({ title, eyebrow, description, children }: { title: string; eyebrow: string; description: string; children: ReactNode; }) {
+export function AppShell({ title, eyebrow, description, children }: { title: string; eyebrow: string; description?: string; children: ReactNode; }) {
   return (
     <div className="page-frame">
       <div className="page-orb page-orb-a" aria-hidden="true" />
@@ -20,7 +20,7 @@ export function AppShell({ title, eyebrow, description, children }: { title: str
         <div>
           <p className="eyebrow">{eyebrow}</p>
           <h1>{title}</h1>
-          <p className="lede">{description}</p>
+          {description ? <p className="lede">{description}</p> : null}
         </div>
         <nav className="nav-pills" aria-label="Primary">
           {navItems.map((item) => (

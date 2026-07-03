@@ -24,8 +24,8 @@ export default async function TimelinePage() {
   return (
     <AppShell
       eyebrow="Časová os"
-      title="Plán na časovej osi"
-      description="Zoradenie úloh podľa priority tak, aby bolo hneď jasné, čo riešiť najskôr."
+      title="Čo riešiť najskôr"
+      description="Prepni prioritu a presuň úlohu podržaním."
     >
       <article className="panel">
         <h2>Časový plán</h2>

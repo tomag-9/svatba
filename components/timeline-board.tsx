@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DndContext, PointerSensor, TouchSensor, closestCorners, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { taskStatusLabels } from '@/lib/labels';
+import { CategoryIcon } from '@/components/category-icon';
+import { taskPriorityLabels, taskStatusLabels } from '@/lib/labels';
 
 type TimelineTask = {
   id: string;
@@ -21,9 +22,9 @@ type TimelineTask = {
 type PriorityColumn = 'HIGH' | 'MEDIUM' | 'LOW';
 
 const priorityLabels: Record<PriorityColumn, string> = {
-  HIGH: 'Vysoká priorita',
-  MEDIUM: 'Stredná priorita',
-  LOW: 'Nízka priorita'
+  HIGH: 'Vysoká',
+  MEDIUM: 'Stredná',
+  LOW: 'Nízka'
 };
 
 const priorityOrder: PriorityColumn[] = ['HIGH', 'MEDIUM', 'LOW'];
@@ -61,52 +62,43 @@ function DraggableTask({ task }: { task: TimelineTask }) {
   return (
     <article ref={setNodeRef} style={style} className={`timeline-card ${isDragging ? 'dragging' : ''}`} {...attributes} {...listeners}>
       <div className="timeline-card-top">
-        <div>
+        <CategoryIcon category={task.category} size={30} />
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div className="row-title">{task.title}</div>
-          <div className="lede" style={{ margin: '6px 0 0' }}>
-            {task.phase ?? 'Fáza'} · {task.category ?? 'Nezaradené'} · {task.deadline ? task.deadline.slice(0, 10) : 'Bez termínu'}
-          </div>
+          <div className="compact-meta">{task.category ?? 'Nezaradené'} · {task.deadline ? task.deadline.slice(0, 10) : 'Bez termínu'}</div>
         </div>
-        <span className={`tag ${task.priority === 'HIGH' ? 'warn' : task.priority === 'MEDIUM' ? '' : 'good'}`}>{taskStatusLabels[task.status]}</span>
+        <span className={`tag ${task.status === 'DONE' ? 'good' : task.status === 'BLOCKED' ? 'warn' : ''}`}>{taskStatusLabels[task.status]}</span>
       </div>
       <p className="task-note-preview">{taskSnippet(task)}</p>
-      <div className="timeline-card-hint">Potiahni na inú prioritu</div>
+      <div className="timeline-card-hint">Potiahni na prioritu hore</div>
     </article>
   );
 }
 
-function PriorityColumnBoard({
+function PrioritySegment({
   priority,
-  tasks,
   isActive,
-  isBusy
+  count,
+  onSelect
 }: {
   priority: PriorityColumn;
-  tasks: TimelineTask[];
   isActive: boolean;
-  isBusy: boolean;
+  count: number;
+  onSelect: () => void;
 }) {
-  const { setNodeRef } = useDroppable({ id: priority });
+  const { isOver, setNodeRef } = useDroppable({ id: priority });
 
   return (
-    <section ref={setNodeRef} className={`timeline-column ${isActive ? 'active' : ''} ${isBusy ? 'busy' : ''}`}>
-      <div className="timeline-column-head">
-        <div className="row-title">{priorityLabels[priority]}</div>
-        <span className="tag">{tasks.length}</span>
-      </div>
-      <div className="timeline-column-body">
-        {tasks.length === 0 ? <p className="timeline-empty">Sem presuň úlohu.</p> : null}
-        {tasks.map((task) => (
-          <DraggableTask key={task.id} task={task} />
-        ))}
-      </div>
-    </section>
+    <button ref={setNodeRef} type="button" className={`timeline-segment ${isActive ? 'active' : ''} ${isOver ? 'over' : ''}`} onClick={onSelect}>
+      {priorityLabels[priority]} ({count})
+    </button>
   );
 }
 
 export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }) {
   const router = useRouter();
   const [tasks, setTasks] = useState(initialTasks);
+  const [activePriority, setActivePriority] = useState<PriorityColumn>('HIGH');
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +110,7 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
 
   const groupedTasks = useMemo(() => groupTasks(tasks), [tasks]);
   const activeTask = activeTaskId ? tasks.find((task) => task.id === activeTaskId) ?? null : null;
+  const visibleTasks = groupedTasks[activePriority];
 
   async function updatePriority(taskId: string, priority: PriorityColumn) {
     const response = await fetch(`/api/tasks/${taskId}`, {
@@ -155,6 +148,7 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
 
     const snapshot = tasks;
     setTasks((currentTasks) => currentTasks.map((task) => (task.id === taskId ? { ...task, priority: nextPriority } : task)));
+    setActivePriority(nextPriority);
     setBusy(true);
 
     try {
@@ -171,22 +165,29 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
   return (
     <div className="timeline-board">
       <p className="lede" style={{ marginTop: 0 }}>
-        Na mobile aj desktope môžeš podržať úlohu a presunúť ju do inej priority.
+        Prepni prioritu a podrž úlohu, ak ju chceš presunúť.
       </p>
       {error ? <p className="form-error">{error}</p> : null}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="timeline-columns">
+        <div className="timeline-segments" aria-label="Priorita">
           {priorityOrder.map((priority) => (
-            <PriorityColumnBoard
+            <PrioritySegment
               key={priority}
               priority={priority}
-              tasks={groupedTasks[priority]}
-              isActive={activeTask ? activeTask.priority !== priority : false}
-              isBusy={busy}
+              count={groupedTasks[priority].length}
+              isActive={activePriority === priority}
+              onSelect={() => setActivePriority(priority)}
             />
           ))}
         </div>
+        <div className="timeline-list">
+          {visibleTasks.length === 0 ? <p className="timeline-empty">Žiadne úlohy v priorite {taskPriorityLabels[activePriority].toLowerCase()}.</p> : null}
+          {visibleTasks.map((task) => (
+            <DraggableTask key={task.id} task={task} />
+          ))}
+        </div>
       </DndContext>
+      {activeTask && busy ? <p className="timeline-empty">Ukladám presun: {activeTask.title}</p> : null}
     </div>
   );
 }

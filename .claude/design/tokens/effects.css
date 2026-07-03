@@ -1,0 +1,24 @@
+/* Svatba — Shadow, blur & motion tokens */
+:root {
+  /* Shadows — soft, warm-brown ambient */
+  --shadow: 0 20px 50px rgba(68, 44, 24, 0.11);
+  --shadow-card: 0 8px 24px rgba(92, 61, 39, 0.06);
+  --shadow-lift: 0 14px 28px rgba(92, 61, 39, 0.14);
+  --focus-ring: 0 0 0 4px rgba(155, 79, 47, 0.11);
+
+  /* Glass blur (frosted cards, sticky headers) */
+  --blur-card: blur(14px); /* @kind other */
+  --blur-header: blur(18px); /* @kind other */
+
+  /* Gradients */
+  --gradient-page: linear-gradient(180deg, var(--bg), var(--bg-2)); /* @kind other */
+  --gradient-accent: linear-gradient(135deg, var(--accent), var(--accent-strong)); /* @kind other */
+  --gradient-hero:
+    radial-gradient(circle at top right, rgba(228, 156, 127, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 250, 244, 0.7)); /* @kind other */
+
+  /* Motion — gentle ease, lift on hover, no bounce */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+  --transition: 180ms ease; /* @kind other */
+  --hover-lift: translateY(-1px); /* @kind other */
+}

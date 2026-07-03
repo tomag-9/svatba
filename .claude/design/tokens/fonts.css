@@ -1,0 +1,68 @@
+/* Svatba — Webfonts
+   Manrope (UI sans) + Cormorant Garamond (display serif), matching the
+   app's next/font setup. Served via Fontsource's jsDelivr CDN. */
+
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-400-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-500-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-600-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-700-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-800-normal.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/cormorant-garamond@latest/latin-400-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/cormorant-garamond@latest/latin-500-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/cormorant-garamond@latest/latin-600-normal.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/cormorant-garamond@latest/latin-700-normal.woff2) format('woff2');
+}
