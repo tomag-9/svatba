@@ -20,5 +20,8 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma/seed.js ./prisma/seed.js
+COPY --from=builder /app/node_modules ./node_modules
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 EXPOSE 3000
-CMD ["sh", "-c", "npx -y prisma@6.19.3 db push --schema=/app/prisma/schema.prisma && node server.js"]
+CMD ["/app/docker-entrypoint.sh"]
