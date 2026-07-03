@@ -2,9 +2,9 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Svadba planner',
-    short_name: 'Svadba',
-    description: 'Aplikácia na plánovanie svadby pre úlohy, hostí, časovú os a rozpočet.',
+    name: 'Angie & Tomi',
+    short_name: 'A&T',
+    description: 'Wedding planning app',
     start_url: '/',
     scope: '/',
     display_override: ['standalone'],

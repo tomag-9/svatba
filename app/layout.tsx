@@ -20,11 +20,11 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: 'Svadba bez chaosu',
-  description: 'Mobilná PWA aplikácia na plánovanie svadby, úloh, hostí, rozpočtu a časovej osi.',
+  title: 'Angie & Tomi',
+  description: 'Wedding planning app',
   appleWebApp: {
     capable: true,
-    title: 'Svadba bez chaosu',
+    title: 'Angie & Tomi',
     statusBarStyle: 'default'
   }
 };
