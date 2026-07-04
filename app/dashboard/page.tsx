@@ -1,7 +1,7 @@
 import { AppShell } from '@/components/app-shell';
 import { CategoryIcon } from '@/components/category-icon';
 import { getWeddingAlertSlot } from '@/lib/alert-slot';
-import { taskStatusLabels } from '@/lib/labels';
+import { taskStatusLabels, weddingRoleLabels } from '@/lib/labels';
 import { prisma } from '@/lib/prisma';
 import { getWeddingCountdownCopy } from '@/lib/wedding-copy';
 
@@ -28,11 +28,12 @@ export default async function DashboardPage() {
     ? new Intl.DateTimeFormat('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' }).format(settings.weddingDate)
     : 'Dátum nenastavený';
   const currency = settings?.currency ?? 'EUR';
+  const greetingName = weddingRoleLabels[settings?.role ?? 'TOMI'];
 
   return (
     <AppShell
       eyebrow="Prehľad"
-      title="Ahoj, Tomi"
+      title={`Ahoj, ${greetingName}`}
     >
       <section className="dashboard-countdown">
         <div className="eyebrow">Do svadby ešte</div>
