@@ -29,12 +29,15 @@ export function MobileNav() {
   }
 
   const quickAddHref = quickAddTargets[pathname] ?? '/tasks#add-task';
+  const showQuickAdd = pathname !== '/settings';
 
   return (
     <>
-      <Link className="quick-add-fab" href={quickAddHref} aria-label="Pridať">
-        <Plus size={24} strokeWidth={2.4} aria-hidden="true" />
-      </Link>
+      {showQuickAdd ? (
+        <Link className="quick-add-fab" href={quickAddHref} aria-label="Pridať">
+          <Plus size={24} strokeWidth={2.4} aria-hidden="true" />
+        </Link>
+      ) : null}
       <nav className="mobile-nav" aria-label="Mobilná navigácia">
         {navItems.map((item) => {
           const active = pathname === item.href;

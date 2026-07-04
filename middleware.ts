@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionCookieName, verifySessionToken } from '@/lib/auth';
 
-const protectedPrefixes = ['/dashboard', '/timeline', '/tasks', '/invitees', '/finance'];
+const protectedPrefixes = ['/dashboard', '/timeline', '/tasks', '/invitees', '/finance', '/settings'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -23,5 +23,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/timeline/:path*', '/tasks/:path*', '/invitees/:path*', '/finance/:path*']
+  matcher: ['/dashboard/:path*', '/timeline/:path*', '/tasks/:path*', '/invitees/:path*', '/finance/:path*', '/settings/:path*']
 };

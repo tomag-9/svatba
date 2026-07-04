@@ -65,9 +65,9 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         <p className="lede" style={{ marginTop: 0 }}>Zobrazené: {filteredTasks.length} úloh</p>
         <div className="table-list">
           {filteredTasks.map((task) => (
-            <div className="table-row" key={task.id}>
+            <div className="table-row task-list-row" key={task.id}>
               <CategoryIcon category={task.category} size={32} />
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="task-list-main">
                 <Link className="row-title row-link" href={`/tasks/${task.id}`}>
                   {task.title}
                 </Link>
@@ -76,16 +76,12 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
                 </div>
                 {task.notes ? <div className="task-note-preview">{task.notes}</div> : null}
               </div>
-              <div className="item-actions">
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  <span className="tag">{taskStatusLabels[task.status]}</span>
-                </div>
-                <div className="item-action-row">
-                  <Link className="button button-ghost" href={`/tasks/${task.id}`}>
-                    Upraviť
-                  </Link>
-                  <DeleteEntityButton endpoint={`/api/tasks/${task.id}`} label="Zmazať" />
-                </div>
+              <span className="tag task-status-tag">{taskStatusLabels[task.status]}</span>
+              <div className="item-action-row task-inline-actions">
+                <Link className="button button-ghost" href={`/tasks/${task.id}`}>
+                  Upraviť
+                </Link>
+                <DeleteEntityButton endpoint={`/api/tasks/${task.id}`} label="Zmazať" />
               </div>
             </div>
           ))}

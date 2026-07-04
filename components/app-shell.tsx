@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { Settings } from 'lucide-react';
 import { navLabels } from '@/lib/labels';
 
 const navItems = [
@@ -19,7 +20,12 @@ export function AppShell({ title, eyebrow, description, children }: { title: str
       <header className="app-header">
         <div>
           <p className="eyebrow">{eyebrow}</p>
-          <h1>{title}</h1>
+          <div className="app-title-row">
+            <h1>{title}</h1>
+            <Link className="settings-link" href="/settings" aria-label="Nastavenia">
+              <Settings size={19} strokeWidth={2.2} aria-hidden="true" />
+            </Link>
+          </div>
           {description ? <p className="lede">{description}</p> : null}
         </div>
         <nav className="nav-pills" aria-label="Primary">
