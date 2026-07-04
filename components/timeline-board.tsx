@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DndContext, PointerSensor, TouchSensor, closestCorners, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from 'lucide-react';
 import { CategoryIcon } from '@/components/category-icon';
 import { taskPriorityLabels, taskStatusLabels } from '@/lib/labels';
 
@@ -51,7 +52,7 @@ function taskSnippet(task: TimelineTask) {
   return `${task.phase ?? 'Fáza'} · ${task.category ?? 'Nezaradené'}`;
 }
 
-function DraggableTask({ task }: { task: TimelineTask }) {
+function DraggableTask({ task, onMove, isBusy }: { task: TimelineTask; onMove: (taskId: string, priority: PriorityColumn) => void; isBusy: boolean }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
 
   const style = {
@@ -60,7 +61,7 @@ function DraggableTask({ task }: { task: TimelineTask }) {
   };
 
   return (
-    <article ref={setNodeRef} style={style} className={`timeline-card ${isDragging ? 'dragging' : ''}`} {...attributes} {...listeners}>
+    <article ref={setNodeRef} style={style} className={`timeline-card ${isDragging ? 'dragging' : ''}`}>
       <div className="timeline-card-top">
         <CategoryIcon category={task.category} size={30} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -68,9 +69,18 @@ function DraggableTask({ task }: { task: TimelineTask }) {
           <div className="compact-meta">{task.category ?? 'Nezaradené'} · {task.deadline ? task.deadline.slice(0, 10) : 'Bez termínu'}</div>
         </div>
         <span className={`tag ${task.status === 'DONE' ? 'good' : task.status === 'BLOCKED' ? 'warn' : ''}`}>{taskStatusLabels[task.status]}</span>
+        <button className="drag-handle" type="button" aria-label="Presunúť potiahnutím" {...attributes} {...listeners}>
+          <GripVertical size={17} aria-hidden="true" />
+        </button>
       </div>
       <p className="task-note-preview">{taskSnippet(task)}</p>
-      <div className="timeline-card-hint">Potiahni na prioritu hore</div>
+      <div className="timeline-move-row" aria-label="Presunúť do priority">
+        {priorityOrder.map((priority) => (
+          <button key={priority} type="button" className={`mini-chip ${task.priority === priority ? 'active' : ''}`} disabled={isBusy || task.priority === priority} onClick={() => onMove(task.id, priority)}>
+            {priorityLabels[priority]}
+          </button>
+        ))}
+      </div>
     </article>
   );
 }
@@ -125,6 +135,30 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
     }
   }
 
+  async function moveTask(taskId: string, nextPriority: PriorityColumn) {
+    const currentTask = tasks.find((task) => task.id === taskId);
+
+    if (!currentTask || currentTask.priority === nextPriority || busy) {
+      return;
+    }
+
+    const snapshot = tasks;
+    setTasks((currentTasks) => currentTasks.map((task) => (task.id === taskId ? { ...task, priority: nextPriority } : task)));
+    setActivePriority(nextPriority);
+    setBusy(true);
+    setError(null);
+
+    try {
+      await updatePriority(taskId, nextPriority);
+      router.refresh();
+    } catch (error) {
+      setTasks(snapshot);
+      setError(error instanceof Error ? error.message : 'Nepodarilo sa zmeniť prioritu úlohy.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function handleDragStart(event: DragStartEvent) {
     setActiveTaskId(String(event.active.id));
     setError(null);
@@ -146,20 +180,7 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
       return;
     }
 
-    const snapshot = tasks;
-    setTasks((currentTasks) => currentTasks.map((task) => (task.id === taskId ? { ...task, priority: nextPriority } : task)));
-    setActivePriority(nextPriority);
-    setBusy(true);
-
-    try {
-      await updatePriority(taskId, nextPriority);
-      router.refresh();
-    } catch (error) {
-      setTasks(snapshot);
-      setError(error instanceof Error ? error.message : 'Nepodarilo sa zmeniť prioritu úlohy.');
-    } finally {
-      setBusy(false);
-    }
+    await moveTask(taskId, nextPriority);
   }
 
   return (
@@ -183,7 +204,7 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
         <div className="timeline-list">
           {visibleTasks.length === 0 ? <p className="timeline-empty">Žiadne úlohy v priorite {taskPriorityLabels[activePriority].toLowerCase()}.</p> : null}
           {visibleTasks.map((task) => (
-            <DraggableTask key={task.id} task={task} />
+            <DraggableTask key={task.id} task={task} onMove={(taskId, priority) => void moveTask(taskId, priority)} isBusy={busy} />
           ))}
         </div>
       </DndContext>
