@@ -3,5 +3,7 @@ node_modules
 coverage
 .git
 plan.md
-data
+data/*
+!data/Svadba.docx
+!data/Svadba.xlsx
 prisma/dev.db
