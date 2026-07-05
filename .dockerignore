@@ -6,4 +6,5 @@ plan.md
 data/*
 !data/Svadba.docx
 !data/Svadba.xlsx
+!data/angie-countdown-lines.txt
 prisma/dev.db

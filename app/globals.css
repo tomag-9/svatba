@@ -84,6 +84,10 @@ select {
   z-index: 1;
 }
 
+.page-frame-compact {
+  width: min(760px, calc(100% - 24px));
+}
+
 .page-orb {
   display: none;
 }
@@ -926,6 +930,15 @@ h1 {
     width: min(1180px, calc(100% - 32px));
     padding-top: 24px;
     padding-bottom: 40px;
+  }
+
+  .page-frame-compact {
+    width: min(760px, calc(100% - 32px));
+  }
+
+  .page-frame-compact h1 {
+    font-size: 2.4rem;
+    line-height: 1;
   }
 
   .app-header {

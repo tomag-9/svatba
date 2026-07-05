@@ -12,9 +12,21 @@ const navItems = [
   { href: '/settings', label: navLabels.settings }
 ];
 
-export function AppShell({ title, eyebrow, description, children }: { title: string; eyebrow: string; description?: string; children: ReactNode; }) {
+export function AppShell({
+  title,
+  eyebrow,
+  description,
+  children,
+  compact = false
+}: {
+  title: string;
+  eyebrow: string;
+  description?: string;
+  children: ReactNode;
+  compact?: boolean;
+}) {
   return (
-    <div className="page-frame">
+    <div className={`page-frame ${compact ? 'page-frame-compact' : ''}`}>
       <div className="page-orb page-orb-a" aria-hidden="true" />
       <div className="page-orb page-orb-b" aria-hidden="true" />
       <header className="app-header">

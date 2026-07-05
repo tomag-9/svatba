@@ -19,7 +19,7 @@ export default async function TaskEditPage({ params }: PageProps) {
   }
 
   return (
-    <AppShell eyebrow="Úlohy" title="Detail úlohy" description="Tu si otvoríš úlohu, doplníš poznámky a upravíš deadline, status aj prioritu.">
+    <AppShell eyebrow="Úlohy" title="Detail úlohy" description="Tu si otvoríš úlohu, doplníš poznámky a upravíš deadline, status aj prioritu." compact>
       <article className="panel">
         <TaskCreateForm
           initialValues={{

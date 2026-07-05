@@ -1,4 +1,6 @@
 import type { WeddingRole } from '@prisma/client';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
 
@@ -11,23 +13,32 @@ type WeddingCopyInput = {
   isApproximate?: boolean;
 };
 
-const angieLines: Record<WeddingAlertSlot, string[]> = {
-  morning: [
-    'Dobré ráno, Angie. Svadba sa blíži a dnes sa posúvame o krok ďalej.',
-    'Ranný check-in: dnes je ďalší kúsok z príprav hotový.',
-    'Angie, dnešok patrí svadbe, detailom a pokoju.'
-  ],
-  afternoon: [
-    'Popoludní sa dotiahnu detaily a Magulová kapitola sa blíži.',
-    'Všetko smeruje k tomu, že z Angie bude pani Magulová.',
-    'Poobede je čas skontrolovať, čo ešte potrebuje lásku a fixnúť.'
-  ],
-  evening: [
-    'Večer si daj pauzu, svadba sa skladá po malých krokoch.',
-    'Angie, dnes stačí jeden pokrok navyše. Zvyšok počká do zajtra.',
-    'Večerný reminder: svadba je blízko, ale chaos už má svoj plán.'
-  ]
-};
+const fallbackAngieCountdownLines = [
+  'A potom už budeš slobodne neslobodná.',
+  'A potom už budeš celá moja.',
+  'A potom už som ja tvoj domov.',
+  'A potom mi už budeš môcť stále variť.',
+  'A potom bude moja peňaženka naša peňaženka.',
+  'A potom sa budeš zobúdzať vedľa mňa.',
+  'A potom budeme žiť našu slobodu.',
+  'A potom sa začne raj na zemi.',
+  'A potom budeš mať doživotný subscription na mňa.',
+  'A potom ti budem prdieť pod perinu.'
+];
+
+function readAngieCountdownLines() {
+  try {
+    const text = readFileSync(path.join(process.cwd(), 'data', 'angie-countdown-lines.txt'), 'utf8');
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('#'));
+
+    return lines.length > 0 ? lines : fallbackAngieCountdownLines;
+  } catch {
+    return fallbackAngieCountdownLines;
+  }
+}
 
 const tomiLines: Record<WeddingAlertSlot, string[]> = {
   morning: [
@@ -51,14 +62,13 @@ function daySeed() {
   return Math.floor(Date.now() / DAY_MS);
 }
 
-function pickLine(lines: string[], daysUntilWedding: number | null, slot: WeddingAlertSlot = 'morning') {
-  const slotSeed = slot === 'morning' ? 0 : slot === 'afternoon' ? 1 : 2;
-  const seed = daySeed() + (daysUntilWedding ?? 0) + slotSeed;
+function pickLine(lines: string[]) {
+  const seed = daySeed();
   return lines[Math.abs(seed) % lines.length];
 }
 
 function selectLines(role: WeddingRole, slot: WeddingAlertSlot) {
-  return role === 'ANGIE' ? angieLines[slot] : tomiLines[slot];
+  return role === 'ANGIE' ? readAngieCountdownLines() : tomiLines[slot];
 }
 
 export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'morning', isApproximate = false }: WeddingCopyInput) {
@@ -83,7 +93,7 @@ export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'mornin
       : daysUntilWedding === 1
         ? 'Zajtra je svadba.'
         : `O ${daysUntilWedding} dní bude svadba.`;
-  const line = pickLine(selectLines(role, slot), daysUntilWedding, slot);
+  const line = pickLine(selectLines(role, slot));
 
   return {
     title: label,
