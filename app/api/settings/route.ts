@@ -11,6 +11,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const body = await readJsonBody<{
     weddingDate?: unknown;
+    weddingDateApproximate?: unknown;
     budgetTarget?: unknown;
     currency?: unknown;
     venueName?: unknown;
@@ -22,6 +23,7 @@ export async function PATCH(request: Request) {
   const existing = await prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } });
   const data = {
     weddingDate: body?.weddingDate === null ? null : body?.weddingDate ? new Date(String(body.weddingDate)) : undefined,
+    weddingDateApproximate: typeof body?.weddingDateApproximate === 'undefined' ? undefined : body?.weddingDateApproximate === true,
     budgetTarget: typeof body?.budgetTarget === 'undefined' || body?.budgetTarget === '' ? undefined : Number(body.budgetTarget),
     currency: parseString(body?.currency) ?? undefined,
     venueName: body?.venueName === null ? null : parseString(body?.venueName) ?? undefined,

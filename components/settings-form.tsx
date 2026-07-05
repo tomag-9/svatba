@@ -6,6 +6,7 @@ import { weddingRoleLabels } from '@/lib/labels';
 
 type SettingsValues = {
   weddingDate?: string;
+  weddingDateApproximate?: boolean;
   budgetTarget?: string;
   currency?: string;
   venueName?: string;
@@ -122,6 +123,7 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         weddingDate: formData.get('weddingDate') || null,
+        weddingDateApproximate: formData.get('weddingDateApproximate') === 'on',
         budgetTarget: formData.get('budgetTarget') || null,
         currency: formData.get('currency'),
         venueName: formData.get('venueName'),
@@ -147,6 +149,10 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
       <label className="field">
         <span>Dátum svadby</span>
         <input name="weddingDate" type="date" defaultValue={initialValues?.weddingDate ?? ''} />
+      </label>
+      <label className="field checkbox-field">
+        <input name="weddingDateApproximate" type="checkbox" defaultChecked={initialValues?.weddingDateApproximate ?? false} />
+        <span>Dátum je zatiaľ približný</span>
       </label>
       <label className="field">
         <span>Cieľ rozpočtu</span>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { taskPriorityLabels, taskStatusLabels } from '@/lib/labels';
+import { taskCategoryOptions } from '@/lib/task-categories';
 
 type TaskFormValues = {
   title?: string;
@@ -86,7 +87,13 @@ export function TaskCreateForm({
       </label>
       <label className="field">
         <span>Kategória</span>
-        <input name="category" defaultValue={initialValues?.category ?? ''} />
+        <select name="category" defaultValue={initialValues?.category ?? 'Planning'}>
+          {taskCategoryOptions.map((category) => (
+            <option key={category.value} value={category.value}>
+              {category.label}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="field">
         <span>Fáza</span>

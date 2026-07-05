@@ -4,6 +4,7 @@ import { DeleteEntityButton } from '@/components/delete-entity-button';
 import { TaskCreateForm } from '@/components/task-create-form';
 import { taskPriorityLabels, taskStatusLabels } from '@/lib/labels';
 import { prisma } from '@/lib/prisma';
+import { getTaskCategoryLabel } from '@/lib/task-categories';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +58,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
 
       <article className="panel" id="add-task">
         <h2>Pridať úlohu</h2>
-        <TaskCreateForm />
+        <TaskCreateForm successPath="/timeline" />
       </article>
 
       <article className="panel">
@@ -72,7 +73,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
                   {task.title}
                 </Link>
                 <div className="compact-meta">
-                  {task.category} · {task.deadline ? task.deadline.toISOString().slice(0, 10) : 'Bez termínu'}
+                  {getTaskCategoryLabel(task.category)} · {task.deadline ? task.deadline.toISOString().slice(0, 10) : 'Bez termínu'}
                 </div>
                 {task.description ? <div className="task-note-preview">{task.description}</div> : null}
                 {task.notes ? <div className="task-note-preview">{task.notes}</div> : null}

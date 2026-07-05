@@ -34,6 +34,7 @@ enum WeddingRole {
 model WeddingSettings {
   id                  String       @id @default(cuid())
   weddingDate         DateTime?
+  weddingDateApproximate Boolean   @default(false)
   budgetTarget        Decimal?     @db.Decimal(12, 2)
   currency            String       @default("EUR")
   venueName           String?

@@ -8,6 +8,7 @@ type WeddingCopyInput = {
   daysUntilWedding: number | null;
   role: WeddingRole;
   slot?: WeddingAlertSlot;
+  isApproximate?: boolean;
 };
 
 const angieLines: Record<WeddingAlertSlot, string[]> = {
@@ -60,7 +61,7 @@ function selectLines(role: WeddingRole, slot: WeddingAlertSlot) {
   return role === 'ANGIE' ? angieLines[slot] : tomiLines[slot];
 }
 
-export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'morning' }: WeddingCopyInput) {
+export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'morning', isApproximate = false }: WeddingCopyInput) {
   if (daysUntilWedding === null) {
     return {
       title: 'Nastav dátum svadby',
@@ -71,23 +72,39 @@ export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'mornin
     };
   }
 
-  const label = daysUntilWedding === 0 ? 'Dnes je svadba.' : daysUntilWedding === 1 ? 'Zajtra je svadba.' : `O ${daysUntilWedding} dní bude svadba.`;
+  const label = isApproximate
+    ? daysUntilWedding === 0
+      ? 'Približne dnes by mala byť svadba.'
+      : daysUntilWedding === 1
+        ? 'Približne zajtra by mala byť svadba.'
+        : `Približne o ${daysUntilWedding} dní bude svadba.`
+    : daysUntilWedding === 0
+      ? 'Dnes je svadba.'
+      : daysUntilWedding === 1
+        ? 'Zajtra je svadba.'
+        : `O ${daysUntilWedding} dní bude svadba.`;
   const line = pickLine(selectLines(role, slot), daysUntilWedding, slot);
 
   return {
     title: label,
-    subtitle: daysUntilWedding === 0 ? 'Je to tu.' : slot === 'evening' ? 'Večerný countdown beží.' : 'Countdown beží.',
+    subtitle: isApproximate ? 'Orientačný countdown beží.' : daysUntilWedding === 0 ? 'Je to tu.' : slot === 'evening' ? 'Večerný countdown beží.' : 'Countdown beží.',
     dailyLine: line
   };
 }
 
-export function getDeadlineNotificationCopy(daysUntilWedding: number | null, role: WeddingRole, slot: WeddingAlertSlot = 'morning') {
+export function getDeadlineNotificationCopy(daysUntilWedding: number | null, role: WeddingRole, slot: WeddingAlertSlot = 'morning', isApproximate = false) {
   if (daysUntilWedding === null) {
     return 'Nastav dátum svadby, aby som vedel odpočítavať a upozorňovať na deadline.';
   }
 
-  const intro = daysUntilWedding === 0 ? 'Dnes je svadba.' : `O ${daysUntilWedding} dní bude svadba.`;
-  const extra = getWeddingCountdownCopy({ daysUntilWedding, role, slot }).dailyLine;
+  const intro = isApproximate
+    ? daysUntilWedding === 0
+      ? 'Približne dnes by mala byť svadba.'
+      : `Približne o ${daysUntilWedding} dní bude svadba.`
+    : daysUntilWedding === 0
+      ? 'Dnes je svadba.'
+      : `O ${daysUntilWedding} dní bude svadba.`;
+  const extra = getWeddingCountdownCopy({ daysUntilWedding, role, slot, isApproximate }).dailyLine;
 
   return `${intro} ${extra}`;
 }

@@ -3,6 +3,7 @@ import { CategoryIcon } from '@/components/category-icon';
 import { getWeddingAlertSlot } from '@/lib/alert-slot';
 import { taskStatusLabels, weddingRoleLabels } from '@/lib/labels';
 import { prisma } from '@/lib/prisma';
+import { getTaskCategoryLabel } from '@/lib/task-categories';
 import { getWeddingCountdownCopy } from '@/lib/wedding-copy';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,7 @@ export default async function DashboardPage() {
   const budgetTarget = settings?.budgetTarget ? Number(settings.budgetTarget) : null;
   const budgetPercent = budgetTarget ? Math.min(100, Math.round((totalSpent / budgetTarget) * 100)) : 0;
   const daysUntilWedding = settings?.weddingDate ? Math.ceil((settings.weddingDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role: settings.role, slot: getWeddingAlertSlot() }) : null;
+  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role: settings.role, slot: getWeddingAlertSlot(), isApproximate: settings.weddingDateApproximate }) : null;
   const yesGuests = guests.filter((guest) => guest.attendance === 'YES').length;
   const maybeGuests = guests.filter((guest) => guest.attendance === 'MAYBE').length;
   const weddingDate = settings?.weddingDate
@@ -93,7 +94,7 @@ export default async function DashboardPage() {
                 <CategoryIcon category={task.category} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="row-title">{task.title}</div>
-                  <div className="compact-meta">{task.category}</div>
+                  <div className="compact-meta">{getTaskCategoryLabel(task.category)}</div>
                 </div>
                 <span className="tag">{taskStatusLabels[task.status]}</span>
               </div>

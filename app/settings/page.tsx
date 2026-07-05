@@ -18,6 +18,7 @@ export default async function SettingsPage() {
         <SettingsForm
           initialValues={{
             weddingDate: settings?.weddingDate ? settings.weddingDate.toISOString().slice(0, 10) : '',
+            weddingDateApproximate: settings?.weddingDateApproximate ?? false,
             budgetTarget: settings?.budgetTarget ? settings.budgetTarget.toString() : '',
             currency: settings?.currency ?? 'EUR',
             venueName: settings?.venueName ?? '',

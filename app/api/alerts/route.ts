@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     return diffDays >= 0 && diffDays <= alertLeadDays;
   });
 
-  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role: settings.role, slot: alertSlot }) : null;
+  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role: settings.role, slot: alertSlot, isApproximate: settings.weddingDateApproximate }) : null;
 
   return NextResponse.json({
     settings,

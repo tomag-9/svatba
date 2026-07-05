@@ -7,6 +7,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { CategoryIcon } from '@/components/category-icon';
 import { taskPriorityLabels, taskStatusLabels } from '@/lib/labels';
+import { getTaskCategoryLabel } from '@/lib/task-categories';
 
 type TimelineTask = {
   id: string;
@@ -49,7 +50,7 @@ function taskSnippet(task: TimelineTask) {
     return task.description;
   }
 
-  return `${task.phase ?? 'Fáza'} · ${task.category ?? 'Nezaradené'}`;
+  return `${task.phase ?? 'Fáza'} · ${getTaskCategoryLabel(task.category)}`;
 }
 
 function DraggableTask({ task, onMove, isBusy }: { task: TimelineTask; onMove: (taskId: string, priority: PriorityColumn) => void; isBusy: boolean }) {
@@ -66,7 +67,7 @@ function DraggableTask({ task, onMove, isBusy }: { task: TimelineTask; onMove: (
         <CategoryIcon category={task.category} size={30} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="row-title">{task.title}</div>
-          <div className="compact-meta">{task.category ?? 'Nezaradené'} · {task.deadline ? task.deadline.slice(0, 10) : 'Bez termínu'}</div>
+          <div className="compact-meta">{getTaskCategoryLabel(task.category)} · {task.deadline ? task.deadline.slice(0, 10) : 'Bez termínu'}</div>
         </div>
         <span className={`tag ${task.status === 'DONE' ? 'good' : task.status === 'BLOCKED' ? 'warn' : ''}`}>{taskStatusLabels[task.status]}</span>
         <button className="drag-handle" type="button" aria-label="Presunúť potiahnutím" {...attributes} {...listeners}>

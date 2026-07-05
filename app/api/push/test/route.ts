@@ -11,7 +11,7 @@ export async function POST() {
   const settings = await prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } });
   const daysUntilWedding = settings?.weddingDate ? Math.ceil((settings.weddingDate.getTime() - Date.now()) / DAY_MS) : null;
   const slot = getWeddingAlertSlot();
-  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role: settings.role, slot }) : null;
+  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role: settings.role, slot, isApproximate: settings.weddingDateApproximate }) : null;
 
   const payload = {
     title: countdown?.title ?? 'Svadba planner',
