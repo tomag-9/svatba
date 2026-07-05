@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Manrope } from 'next/font/google';
 import { PwaRegister } from '@/components/pwa-register';
 import { PwaInstallPrompt } from '@/components/pwa-install-prompt';
@@ -29,7 +29,10 @@ export const metadata: Metadata = {
   }
 };
 
-export const viewport = {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
   themeColor: '#9b4f2f'
 };
 
