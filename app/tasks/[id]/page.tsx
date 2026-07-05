@@ -24,12 +24,14 @@ export default async function TaskEditPage({ params }: PageProps) {
         <TaskCreateForm
           initialValues={{
             title: task.title,
+            description: task.description ?? '',
             category: task.category ?? '',
             phase: task.phase ?? '',
             priority: task.priority,
             status: task.status,
             deadline: task.deadline ? task.deadline.toISOString().slice(0, 10) : '',
-            notes: task.notes ?? ''
+            notes: task.notes ?? '',
+            resultInfo: task.resultInfo ?? ''
           }}
           submitLabel="Uložiť úlohu"
           endpoint={`/api/tasks/${task.id}`}

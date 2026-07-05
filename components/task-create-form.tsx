@@ -6,12 +6,14 @@ import { taskPriorityLabels, taskStatusLabels } from '@/lib/labels';
 
 type TaskFormValues = {
   title?: string;
+  description?: string;
   category?: string;
   phase?: string;
   priority?: 'LOW' | 'MEDIUM' | 'HIGH';
   status?: 'TODO' | 'IN_PROGRESS' | 'DONE' | 'BLOCKED';
   deadline?: string;
   notes?: string;
+  resultInfo?: string;
 };
 
 type TaskCreateFormProps = {
@@ -44,12 +46,14 @@ export function TaskCreateForm({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: formData.get('title'),
+        description: formData.get('description') || undefined,
         category: formData.get('category'),
         phase: formData.get('phase'),
         priority: formData.get('priority'),
         status: formData.get('status'),
         deadline: formData.get('deadline') || undefined,
-        notes: formData.get('notes') || undefined
+        notes: formData.get('notes') || undefined,
+        resultInfo: formData.get('resultInfo') || undefined
       })
     });
 
@@ -75,6 +79,10 @@ export function TaskCreateForm({
       <label className="field">
         <span>Názov úlohy</span>
         <input name="title" defaultValue={initialValues?.title ?? ''} required />
+      </label>
+      <label className="field">
+        <span>Popis</span>
+        <textarea name="description" defaultValue={initialValues?.description ?? ''} rows={4} placeholder="Čo patrí k tejto úlohe zo zdroja." />
       </label>
       <label className="field">
         <span>Kategória</span>
@@ -108,6 +116,10 @@ export function TaskCreateForm({
       <label className="field">
         <span>Poznámky</span>
         <textarea name="notes" defaultValue={initialValues?.notes ?? ''} rows={5} placeholder="Sem si píš čo treba zariadiť, zavolať alebo skontrolovať." />
+      </label>
+      <label className="field">
+        <span>Result info</span>
+        <textarea name="resultInfo" defaultValue={initialValues?.resultInfo ?? ''} rows={4} placeholder="Čo sa zobrazí pod úlohou po vyriešení." />
       </label>
       {error ? <p className="form-error">{error}</p> : null}
       <button className="button button-primary" type="submit" disabled={isSubmitting}>

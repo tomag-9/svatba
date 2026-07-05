@@ -74,7 +74,9 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
                 <div className="compact-meta">
                   {task.category} · {task.deadline ? task.deadline.toISOString().slice(0, 10) : 'Bez termínu'}
                 </div>
+                {task.description ? <div className="task-note-preview">{task.description}</div> : null}
                 {task.notes ? <div className="task-note-preview">{task.notes}</div> : null}
+                {task.status === 'DONE' && task.resultInfo ? <div className="task-result-info">{task.resultInfo}</div> : null}
               </div>
               <span className="tag task-status-tag">{taskStatusLabels[task.status]}</span>
               <div className="item-action-row task-inline-actions">

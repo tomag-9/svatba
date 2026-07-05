@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     title?: unknown;
     description?: unknown;
     notes?: unknown;
+    resultInfo?: unknown;
     deadline?: unknown;
     priority?: unknown;
     status?: unknown;
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
       title,
       description: parseString(body?.description),
       notes: parseString(body?.notes),
+      resultInfo: parseString(body?.resultInfo),
       deadline: body?.deadline ? new Date(String(body.deadline)) : null,
       priority: parseTaskPriority(body?.priority),
       status: parseTaskStatus(body?.status),

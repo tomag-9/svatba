@@ -10,6 +10,7 @@ export async function PATCH(request: Request, context: { params: RouteParams }) 
     title?: unknown;
     description?: unknown;
     notes?: unknown;
+    resultInfo?: unknown;
     deadline?: unknown;
     priority?: unknown;
     status?: unknown;
@@ -25,6 +26,7 @@ export async function PATCH(request: Request, context: { params: RouteParams }) 
       title: parseString(body?.title) ?? undefined,
       description: body?.description === null ? null : parseString(body?.description) ?? undefined,
       notes: body?.notes === null ? null : parseString(body?.notes) ?? undefined,
+      resultInfo: body?.resultInfo === null ? null : parseString(body?.resultInfo) ?? undefined,
       deadline: body?.deadline === null ? null : body?.deadline ? new Date(String(body.deadline)) : undefined,
       priority: parseTaskPriority(body?.priority),
       status: parseTaskStatus(body?.status),

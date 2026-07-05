@@ -34,7 +34,7 @@ export default async function InviteesPage() {
   const guests = await prisma.guest.findMany({
     orderBy: [{ familyGroup: 'asc' }, { name: 'asc' }]
   });
-  const groupNames = Array.from(new Set(guests.map((guest) => guest.familyGroup ?? 'Party')));
+  const groupNames = ['Angelika', 'Tomáš', null].filter((group) => guests.some((guest) => guest.familyGroup === group));
 
   return (
     <AppShell
@@ -49,11 +49,12 @@ export default async function InviteesPage() {
       <article className="panel">
         <h2>Zoznam hostí</h2>
         {groupNames.map((group) => {
-          const rows = guests.filter((guest) => (guest.familyGroup ?? 'Party') === group);
+          const rows = guests.filter((guest) => guest.familyGroup === group);
+          const label = group ?? 'Spoločný party zoznam';
 
           return (
-            <section key={group}>
-              <div className="group-label">{group}</div>
+            <section key={label}>
+              <div className="group-label">{label}</div>
               <div className="table-list">
                 {rows.map((guest) => (
                   <div className="table-row" key={guest.id}>

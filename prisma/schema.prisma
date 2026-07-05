@@ -59,6 +59,7 @@ model Task {
   title       String
   description String?
   notes       String?
+  resultInfo  String?
   deadline    DateTime?
   priority    TaskPriority  @default(MEDIUM)
   status      TaskStatus    @default(TODO)
