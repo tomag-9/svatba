@@ -9,7 +9,7 @@ services:
       - "3000"
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@db:5432/svatba?schema=public}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       WEDDING_APP_PASSWORD: ${WEDDING_APP_PASSWORD}
       AUTH_SECRET: ${AUTH_SECRET}
       WEB_PUSH_VAPID_SUBJECT: ${WEB_PUSH_VAPID_SUBJECT:-mailto:hello@example.com}
@@ -17,9 +17,6 @@ services:
       WEB_PUSH_VAPID_PRIVATE_KEY: ${WEB_PUSH_VAPID_PRIVATE_KEY:-}
       INTERNAL_PUSH_SECRET: ${INTERNAL_PUSH_SECRET:-}
       TZ: Europe/Bratislava
-    depends_on:
-      db:
-        condition: service_healthy
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
@@ -38,24 +35,6 @@ services:
     networks:
       - default
       - dokploy-network
-
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d svatba"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
-volumes:
-  postgres_data:
 
 networks:
   dokploy-network:
