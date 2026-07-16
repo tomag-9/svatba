@@ -3,14 +3,15 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { weddingRoleLabels } from '@/lib/labels';
+import { WEDDING_ROLE_COOKIE, type WeddingRoleValue } from '@/lib/wedding-role';
 
 type SettingsValues = {
   weddingDate?: string;
   weddingDateApproximate?: boolean;
   budgetTarget?: string;
-  currency?: string;
   venueName?: string;
-  role?: 'TOMI' | 'ANGIE';
+  notes?: string;
+  role?: WeddingRoleValue;
   deadlineAlertsEnabled?: boolean;
   alertLeadDays?: string;
 };
@@ -20,6 +21,12 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
+  const [role, setRole] = useState<WeddingRoleValue>(initialValues?.role ?? 'TOMI');
+
+  function persistRole(nextRole: WeddingRoleValue) {
+    setRole(nextRole);
+    document.cookie = `${WEDDING_ROLE_COOKIE}=${encodeURIComponent(nextRole)}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+  }
 
   function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -125,9 +132,9 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
         weddingDate: formData.get('weddingDate') || null,
         weddingDateApproximate: formData.get('weddingDateApproximate') === 'on',
         budgetTarget: formData.get('budgetTarget') || null,
-        currency: formData.get('currency'),
         venueName: formData.get('venueName'),
-        role: formData.get('role'),
+        notes: formData.get('notes') || null,
+        role,
         deadlineAlertsEnabled: formData.get('deadlineAlertsEnabled') === 'on',
         alertLeadDays: formData.get('alertLeadDays')
       })
@@ -159,26 +166,32 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
         <input name="budgetTarget" type="number" step="0.01" min="0" defaultValue={initialValues?.budgetTarget ?? ''} />
       </label>
       <label className="field">
-        <span>Mena</span>
-        <input name="currency" defaultValue={initialValues?.currency ?? 'EUR'} />
-      </label>
-      <label className="field">
         <span>Sála / miesto</span>
         <input name="venueName" defaultValue={initialValues?.venueName ?? ''} />
       </label>
       <div className="field">
         <span>Som</span>
-        <div className="chip-row">
-          <label className={`chip ${initialValues?.role === 'TOMI' ? 'active' : ''}`}>
-            <input type="radio" name="role" value="TOMI" defaultChecked={initialValues?.role !== 'ANGIE'} style={{ marginRight: 8 }} />
+        <div className="chip-row" role="radiogroup" aria-label="Kto používa tento prehliadač">
+          <label className={`chip role-chip ${role === 'TOMI' ? 'active' : ''}`}>
+            <input type="radio" name="role" value="TOMI" checked={role === 'TOMI'} onChange={() => persistRole('TOMI')} />
             {weddingRoleLabels.TOMI}
           </label>
-          <label className={`chip ${initialValues?.role === 'ANGIE' ? 'active' : ''}`}>
-            <input type="radio" name="role" value="ANGIE" defaultChecked={initialValues?.role === 'ANGIE'} style={{ marginRight: 8 }} />
+          <label className={`chip role-chip ${role === 'ANGIE' ? 'active' : ''}`}>
+            <input type="radio" name="role" value="ANGIE" checked={role === 'ANGIE'} onChange={() => persistRole('ANGIE')} />
             {weddingRoleLabels.ANGIE}
           </label>
         </div>
       </div>
+      <section className="settings-section">
+        <div>
+          <h3>Poznámky</h3>
+          <p className="compact-meta">Spoločné veci, ktoré nechceme stratiť medzi úlohami.</p>
+        </div>
+        <label className="field">
+          <span>Poznámky</span>
+          <textarea name="notes" defaultValue={initialValues?.notes ?? ''} rows={7} placeholder="Nápady, dohody, otázky na sálu, veci na prebrať..." />
+        </label>
+      </section>
       <label className="field checkbox-field">
         <input name="deadlineAlertsEnabled" type="checkbox" defaultChecked={initialValues?.deadlineAlertsEnabled ?? false} />
         <span>Zapnúť upozornenia na deadliny</span>

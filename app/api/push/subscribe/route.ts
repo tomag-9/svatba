@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { deletePushSubscription, storePushSubscription } from '@/lib/push';
+import { getWeddingRole, getWeddingRoleFromCookieHeader } from '@/lib/wedding-role';
 
 type PushSubscriptionPayload = {
   endpoint?: string;
@@ -13,6 +14,7 @@ type PushSubscriptionPayload = {
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as PushSubscriptionPayload | null;
+  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')));
 
   if (!body?.endpoint || !body.keys?.p256dh || !body.keys?.auth) {
     return NextResponse.json({ error: 'Invalid push subscription' }, { status: 400 });
@@ -24,7 +26,8 @@ export async function POST(request: Request) {
     keys: {
       p256dh: body.keys.p256dh,
       auth: body.keys.auth
-    }
+    },
+    role
   });
 
   return NextResponse.json({ subscription });

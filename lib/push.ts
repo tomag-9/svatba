@@ -1,4 +1,5 @@
 import webPush from 'web-push';
+import type { WeddingRole } from '@prisma/client';
 
 import { prisma } from '@/lib/prisma';
 
@@ -15,6 +16,7 @@ type PushSubscriptionInput = {
     p256dh: string;
     auth: string;
   };
+  role?: WeddingRole;
 };
 
 let isConfigured = false;
@@ -51,13 +53,15 @@ export async function storePushSubscription(subscription: PushSubscriptionInput)
     update: {
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
-      expirationTime: subscription.expirationTime ?? null
+      expirationTime: subscription.expirationTime ?? null,
+      role: subscription.role
     },
     create: {
       endpoint: subscription.endpoint,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
-      expirationTime: subscription.expirationTime ?? null
+      expirationTime: subscription.expirationTime ?? null,
+      role: subscription.role ?? 'TOMI'
     }
   });
 }
@@ -66,10 +70,12 @@ export async function deletePushSubscription(endpoint: string) {
   await prisma.pushSubscription.deleteMany({ where: { endpoint } });
 }
 
-export async function broadcastPushNotification(payload: PushNotificationPayload) {
+export async function broadcastPushNotification(payload: PushNotificationPayload, filters?: { role?: WeddingRole }) {
   ensureConfigured();
 
-  const subscriptions = await prisma.pushSubscription.findMany();
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: filters?.role ? { role: filters.role } : undefined
+  });
   const message = JSON.stringify(payload);
 
   const results = await Promise.allSettled(

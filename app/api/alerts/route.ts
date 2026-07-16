@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getWeddingAlertSlot } from '@/lib/alert-slot';
+import { getWeddingRole, getWeddingRoleFromCookieHeader } from '@/lib/wedding-role';
 import { getWeddingCountdownCopy } from '@/lib/wedding-copy';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
     prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } }),
     prisma.task.findMany({ where: { status: { not: 'DONE' } }, orderBy: [{ deadline: 'asc' }, { priority: 'desc' }] })
   ]);
+  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), settings?.role ?? 'TOMI');
 
   const daysUntilWedding = settings?.weddingDate ? Math.ceil((settings.weddingDate.getTime() - Date.now()) / DAY_MS) : null;
   const alertLeadDays = settings?.alertLeadDays ?? 3;
@@ -34,7 +36,7 @@ export async function GET(request: Request) {
     return diffDays >= 0 && diffDays <= alertLeadDays;
   });
 
-  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role: settings.role, slot: alertSlot, isApproximate: settings.weddingDateApproximate }) : null;
+  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role, slot: alertSlot, isApproximate: settings.weddingDateApproximate }) : null;
 
   return NextResponse.json({
     settings,

@@ -1,11 +1,17 @@
 import { AppShell } from '@/components/app-shell';
 import { SettingsForm } from '@/components/settings-form';
 import { prisma } from '@/lib/prisma';
+import { WEDDING_ROLE_COOKIE, getWeddingRole } from '@/lib/wedding-role';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
-  const settings = await prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } });
+  const [settings, cookieStore] = await Promise.all([
+    prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } }),
+    cookies()
+  ]);
+  const role = getWeddingRole(cookieStore.get(WEDDING_ROLE_COOKIE)?.value, settings?.role ?? 'TOMI');
 
   return (
     <AppShell
@@ -20,9 +26,9 @@ export default async function SettingsPage() {
             weddingDate: settings?.weddingDate ? settings.weddingDate.toISOString().slice(0, 10) : '',
             weddingDateApproximate: settings?.weddingDateApproximate ?? false,
             budgetTarget: settings?.budgetTarget ? settings.budgetTarget.toString() : '',
-            currency: settings?.currency ?? 'EUR',
             venueName: settings?.venueName ?? '',
-            role: settings?.role ?? 'TOMI',
+            notes: settings?.notes ?? '',
+            role,
             deadlineAlertsEnabled: settings?.deadlineAlertsEnabled ?? false,
             alertLeadDays: settings?.alertLeadDays?.toString() ?? '3'
           }}

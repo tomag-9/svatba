@@ -30,8 +30,19 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
     const priorityMatches = priority === 'ALL' || task.priority === priority;
     return statusMatches && priorityMatches;
   });
+  const activeTasks = filteredTasks.filter((task) => task.status !== 'DONE');
+  const doneTasks = filteredTasks.filter((task) => task.status === 'DONE');
+  const taskSections =
+    status === 'ALL'
+      ? [
+          { key: 'active', label: 'Na vybavenie', rows: activeTasks },
+          { key: 'done', label: 'Vybavené', rows: doneTasks }
+        ].filter((section) => section.rows.length > 0)
+      : [{ key: status.toLowerCase(), label: status === 'DONE' ? 'Vybavené' : 'Na vybavenie', rows: filteredTasks }];
 
   const activeLink = (key: string, value: string) => `?status=${key === 'status' ? value : status}&priority=${key === 'priority' ? value : priority}`;
+  const returnTo = `/tasks?status=${encodeURIComponent(status)}&priority=${encodeURIComponent(priority)}`;
+  const editHref = (taskId: string) => `/tasks/${taskId}?returnTo=${encodeURIComponent(returnTo)}`;
 
   return (
     <AppShell
@@ -64,31 +75,36 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
       <article className="panel">
         <h2>Aktuálny backlog</h2>
         <p className="lede" style={{ marginTop: 0 }}>Zobrazené: {filteredTasks.length} úloh</p>
-        <div className="table-list">
-          {filteredTasks.map((task) => (
-            <div className="table-row task-list-row" key={task.id}>
-              <CategoryIcon category={task.category} size={32} />
-              <div className="task-list-main">
-                <Link className="row-title row-link" href={`/tasks/${task.id}`}>
-                  {task.title}
-                </Link>
-                <div className="compact-meta">
-                  {getTaskCategoryLabel(task.category)} · {task.deadline ? task.deadline.toISOString().slice(0, 10) : 'Bez termínu'}
+        {taskSections.map((section) => (
+          <section className="task-section" key={section.key}>
+            <div className={`timeline-section-label ${section.key === 'done' ? 'done' : ''}`}>{section.label}</div>
+            <div className="table-list">
+              {section.rows.map((task) => (
+                <div className={`table-row task-list-row ${task.status === 'DONE' ? 'is-done' : ''}`} key={task.id}>
+                  <CategoryIcon category={task.category} size={32} />
+                  <div className="task-list-main">
+                    <Link className="row-title row-link" href={editHref(task.id)}>
+                      {task.title}
+                    </Link>
+                    <div className="compact-meta">
+                      {getTaskCategoryLabel(task.category)} · {task.deadline ? task.deadline.toISOString().slice(0, 10) : 'Bez termínu'}
+                    </div>
+                    {task.description ? <div className="task-note-preview">{task.description}</div> : null}
+                    {task.notes ? <div className="task-note-preview">{task.notes}</div> : null}
+                    {task.status === 'DONE' && task.resultInfo ? <div className="task-result-info">{task.resultInfo}</div> : null}
+                  </div>
+                  <span className="tag task-status-tag">{taskStatusLabels[task.status]}</span>
+                  <div className="item-action-row task-inline-actions">
+                    <Link className="button button-ghost" href={editHref(task.id)}>
+                      Upraviť
+                    </Link>
+                    <DeleteEntityButton endpoint={`/api/tasks/${task.id}`} label="Zmazať" />
+                  </div>
                 </div>
-                {task.description ? <div className="task-note-preview">{task.description}</div> : null}
-                {task.notes ? <div className="task-note-preview">{task.notes}</div> : null}
-                {task.status === 'DONE' && task.resultInfo ? <div className="task-result-info">{task.resultInfo}</div> : null}
-              </div>
-              <span className="tag task-status-tag">{taskStatusLabels[task.status]}</span>
-              <div className="item-action-row task-inline-actions">
-                <Link className="button button-ghost" href={`/tasks/${task.id}`}>
-                  Upraviť
-                </Link>
-                <DeleteEntityButton endpoint={`/api/tasks/${task.id}`} label="Zmazať" />
-              </div>
+              ))}
             </div>
+          </section>
           ))}
-        </div>
       </article>
     </AppShell>
   );

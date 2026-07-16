@@ -4,17 +4,21 @@ import { getWeddingAlertSlot } from '@/lib/alert-slot';
 import { taskStatusLabels, weddingRoleLabels } from '@/lib/labels';
 import { prisma } from '@/lib/prisma';
 import { getTaskCategoryLabel } from '@/lib/task-categories';
+import { WEDDING_ROLE_COOKIE, getWeddingRole } from '@/lib/wedding-role';
 import { getWeddingCountdownCopy } from '@/lib/wedding-copy';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const [tasks, guests, expenses, settings] = await Promise.all([
+  const [tasks, guests, expenses, settings, cookieStore] = await Promise.all([
     prisma.task.findMany(),
     prisma.guest.findMany(),
     prisma.expense.findMany(),
-    prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } })
+    prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } }),
+    cookies()
   ]);
+  const role = getWeddingRole(cookieStore.get(WEDDING_ROLE_COOKIE)?.value, settings?.role ?? 'TOMI');
 
   const totalSpent = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   const openTasks = tasks.filter((task) => task.status !== 'DONE').length;
@@ -22,14 +26,14 @@ export default async function DashboardPage() {
   const budgetTarget = settings?.budgetTarget ? Number(settings.budgetTarget) : null;
   const budgetPercent = budgetTarget ? Math.min(100, Math.round((totalSpent / budgetTarget) * 100)) : 0;
   const daysUntilWedding = settings?.weddingDate ? Math.ceil((settings.weddingDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role: settings.role, slot: getWeddingAlertSlot(), isApproximate: settings.weddingDateApproximate }) : null;
+  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role, slot: getWeddingAlertSlot(), isApproximate: settings.weddingDateApproximate }) : null;
   const yesGuests = guests.filter((guest) => guest.attendance === 'YES').length;
   const maybeGuests = guests.filter((guest) => guest.attendance === 'MAYBE').length;
   const weddingDate = settings?.weddingDate
     ? new Intl.DateTimeFormat('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' }).format(settings.weddingDate)
     : 'Dátum nenastavený';
   const currency = settings?.currency ?? 'EUR';
-  const greetingName = weddingRoleLabels[settings?.role ?? 'TOMI'];
+  const greetingName = weddingRoleLabels[role];
 
   return (
     <AppShell

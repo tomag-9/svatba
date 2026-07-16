@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { WeddingRole } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { parseString, readJsonBody } from '@/lib/request';
+import { WEDDING_ROLE_COOKIE, parseWeddingRole } from '@/lib/wedding-role';
 
 export async function GET() {
   const settings = await prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } });
@@ -15,6 +15,7 @@ export async function PATCH(request: Request) {
     budgetTarget?: unknown;
     currency?: unknown;
     venueName?: unknown;
+    notes?: unknown;
     role?: unknown;
     deadlineAlertsEnabled?: unknown;
     alertLeadDays?: unknown;
@@ -27,7 +28,7 @@ export async function PATCH(request: Request) {
     budgetTarget: typeof body?.budgetTarget === 'undefined' || body?.budgetTarget === '' ? undefined : Number(body.budgetTarget),
     currency: parseString(body?.currency) ?? undefined,
     venueName: body?.venueName === null ? null : parseString(body?.venueName) ?? undefined,
-    role: body?.role === 'ANGIE' ? WeddingRole.ANGIE : body?.role === 'TOMI' ? WeddingRole.TOMI : undefined,
+    notes: body?.notes === null ? null : parseString(body?.notes) ?? undefined,
     deadlineAlertsEnabled: typeof body?.deadlineAlertsEnabled === 'undefined' ? undefined : body?.deadlineAlertsEnabled === true,
     alertLeadDays: typeof body?.alertLeadDays === 'undefined' || body?.alertLeadDays === '' ? undefined : Number(body.alertLeadDays)
   };
@@ -36,5 +37,16 @@ export async function PATCH(request: Request) {
     ? await prisma.weddingSettings.update({ where: { id: existing.id }, data })
     : await prisma.weddingSettings.create({ data: { ...data, currency: data.currency ?? 'EUR' } });
 
-  return NextResponse.json({ settings });
+  const response = NextResponse.json({ settings });
+  const role = parseWeddingRole(body?.role);
+
+  if (role) {
+    response.cookies.set(WEDDING_ROLE_COOKIE, role, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax'
+    });
+  }
+
+  return response;
 }

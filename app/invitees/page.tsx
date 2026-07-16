@@ -34,7 +34,11 @@ export default async function InviteesPage() {
   const guests = await prisma.guest.findMany({
     orderBy: [{ familyGroup: 'asc' }, { name: 'asc' }]
   });
-  const groupNames = ['Angelika', 'Tomáš', null].filter((group) => guests.some((guest) => guest.familyGroup === group));
+  const groups = [
+    { key: 'angelika', label: 'Angelika', rows: guests.filter((guest) => guest.familyGroup === 'Angelika' && guest.dinner) },
+    { key: 'tomas', label: 'Tomáš', rows: guests.filter((guest) => (guest.familyGroup === 'Tomáš' || guest.familyGroup === 'Tomas') && guest.dinner) },
+    { key: 'party', label: 'Party', rows: guests.filter((guest) => guest.party && !guest.dinner) }
+  ].filter((group) => group.rows.length > 0);
 
   return (
     <AppShell
@@ -48,15 +52,12 @@ export default async function InviteesPage() {
 
       <article className="panel">
         <h2>Zoznam hostí</h2>
-        {groupNames.map((group) => {
-          const rows = guests.filter((guest) => guest.familyGroup === group);
-          const label = group ?? 'Spoločný party zoznam';
-
+        {groups.map((group) => {
           return (
-            <section key={label}>
-              <div className="group-label">{label}</div>
+            <section key={group.key}>
+              <div className="group-label">{group.label}</div>
               <div className="table-list">
-                {rows.map((guest) => (
+                {group.rows.map((guest) => (
                   <div className="table-row" key={guest.id}>
                     <span className={`avatar-chip ${getAvatarTone(guest.familyGroup)}`}>{getInitials(guest.name)}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>

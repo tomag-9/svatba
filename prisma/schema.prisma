@@ -39,6 +39,7 @@ model WeddingSettings {
   currency            String       @default("EUR")
   venueName           String?
   role                WeddingRole   @default(TOMI)
+  notes               String?
   deadlineAlertsEnabled Boolean     @default(false)
   alertLeadDays       Int          @default(3)
   createdAt           DateTime     @default(now())
@@ -51,8 +52,15 @@ model PushSubscription {
   p256dh         String
   auth           String
   expirationTime Int?
+  role           WeddingRole @default(TOMI)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model PushDeliveryLog {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  createdAt DateTime @default(now())
 }
 
 model Task {

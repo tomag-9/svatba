@@ -8,10 +8,22 @@ export const dynamic = 'force-dynamic';
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{
+    returnTo?: string;
+  }>;
 };
 
-export default async function TaskEditPage({ params }: PageProps) {
+function getReturnPath(path?: string) {
+  if (!path || !path.startsWith('/') || path.startsWith('//')) {
+    return '/tasks';
+  }
+
+  return path;
+}
+
+export default async function TaskEditPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const { returnTo } = (await searchParams) ?? {};
   const task = await prisma.task.findUnique({ where: { id } });
 
   if (!task) {
@@ -36,11 +48,11 @@ export default async function TaskEditPage({ params }: PageProps) {
           submitLabel="Uložiť úlohu"
           endpoint={`/api/tasks/${task.id}`}
           method="PATCH"
-          successPath="/tasks"
+          successPath={getReturnPath(returnTo)}
         />
       </article>
       <article className="panel panel-inline-actions">
-        <DeleteEntityButton endpoint={`/api/tasks/${task.id}`} redirectTo="/tasks" label="Zmazať úlohu" />
+        <DeleteEntityButton endpoint={`/api/tasks/${task.id}`} redirectTo={getReturnPath(returnTo)} label="Zmazať úlohu" />
       </article>
     </AppShell>
   );

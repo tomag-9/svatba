@@ -33,5 +33,20 @@ const prisma = new PrismaClient();
 });
 NODE
 
+echo "Starting internal noon push scheduler..."
+(
+  LAST_NOON_PUSH_DATE=""
+  while true; do
+    CURRENT_TIME="$(date +%H:%M)"
+    CURRENT_DATE="$(date +%F)"
+    if [ "$CURRENT_TIME" = "12:00" ] && [ "$LAST_NOON_PUSH_DATE" != "$CURRENT_DATE" ]; then
+      if wget -qO- --header="Authorization: Bearer $INTERNAL_PUSH_SECRET" --post-data='' http://127.0.0.1:3000/api/push/noon >/dev/null 2>&1; then
+        LAST_NOON_PUSH_DATE="$CURRENT_DATE"
+      fi
+    fi
+    sleep 30
+  done
+) &
+
 echo "Starting Next.js server..."
 ./node_modules/.bin/next start

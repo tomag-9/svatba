@@ -41,6 +41,19 @@ function groupTasks(tasks: TimelineTask[]) {
   );
 }
 
+function sortTimelineTasks(tasks: TimelineTask[]) {
+  return [...tasks].sort((first, second) => {
+    const firstDeadline = first.deadline ? new Date(first.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+    const secondDeadline = second.deadline ? new Date(second.deadline).getTime() : Number.MAX_SAFE_INTEGER;
+
+    if (firstDeadline !== secondDeadline) {
+      return firstDeadline - secondDeadline;
+    }
+
+    return first.title.localeCompare(second.title, 'sk');
+  });
+}
+
 function taskSnippet(task: TimelineTask) {
   if (task.notes) {
     return task.notes;
@@ -53,7 +66,17 @@ function taskSnippet(task: TimelineTask) {
   return `${task.phase ?? 'Fáza'} · ${getTaskCategoryLabel(task.category)}`;
 }
 
-function DraggableTask({ task, onMove, isBusy }: { task: TimelineTask; onMove: (taskId: string, priority: PriorityColumn) => void; isBusy: boolean }) {
+function DraggableTask({
+  task,
+  onMove,
+  onOpen,
+  isBusy
+}: {
+  task: TimelineTask;
+  onMove: (taskId: string, priority: PriorityColumn) => void;
+  onOpen: (taskId: string) => void;
+  isBusy: boolean;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
 
   const style = {
@@ -61,8 +84,27 @@ function DraggableTask({ task, onMove, isBusy }: { task: TimelineTask; onMove: (
     opacity: isDragging ? 0.55 : 1
   };
 
+  function handleOpen() {
+    if (!isDragging) {
+      onOpen(task.id);
+    }
+  }
+
   return (
-    <article ref={setNodeRef} style={style} className={`timeline-card ${isDragging ? 'dragging' : ''}`}>
+    <article
+      ref={setNodeRef}
+      style={style}
+      className={`timeline-card timeline-card-clickable ${isDragging ? 'dragging' : ''}`}
+      role="button"
+      tabIndex={0}
+      onClick={handleOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleOpen();
+        }
+      }}
+    >
       <div className="timeline-card-top">
         <CategoryIcon category={task.category} size={30} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -70,14 +112,23 @@ function DraggableTask({ task, onMove, isBusy }: { task: TimelineTask; onMove: (
           <div className="compact-meta">{getTaskCategoryLabel(task.category)} · {task.deadline ? task.deadline.slice(0, 10) : 'Bez termínu'}</div>
         </div>
         <span className={`tag ${task.status === 'DONE' ? 'good' : task.status === 'BLOCKED' ? 'warn' : ''}`}>{taskStatusLabels[task.status]}</span>
-        <button className="drag-handle" type="button" aria-label="Presunúť potiahnutím" {...attributes} {...listeners}>
+        <button className="drag-handle" type="button" aria-label="Presunúť potiahnutím" onClick={(event) => event.stopPropagation()} {...attributes} {...listeners}>
           <GripVertical size={17} aria-hidden="true" />
         </button>
       </div>
       <p className="task-note-preview">{taskSnippet(task)}</p>
       <div className="timeline-move-row" aria-label="Presunúť do priority">
         {priorityOrder.map((priority) => (
-          <button key={priority} type="button" className={`mini-chip ${task.priority === priority ? 'active' : ''}`} disabled={isBusy || task.priority === priority} onClick={() => onMove(task.id, priority)}>
+          <button
+            key={priority}
+            type="button"
+            className={`mini-chip ${task.priority === priority ? 'active' : ''}`}
+            disabled={isBusy || task.priority === priority}
+            onClick={(event) => {
+              event.stopPropagation();
+              onMove(task.id, priority);
+            }}
+          >
             {priorityLabels[priority]}
           </button>
         ))}
@@ -119,7 +170,8 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
     useSensor(TouchSensor, { activationConstraint: { delay: 140, tolerance: 8 } })
   );
 
-  const groupedTasks = useMemo(() => groupTasks(tasks), [tasks]);
+  const activeTasks = useMemo(() => sortTimelineTasks(tasks.filter((task) => task.status !== 'DONE')), [tasks]);
+  const groupedTasks = useMemo(() => groupTasks(activeTasks), [activeTasks]);
   const activeTask = activeTaskId ? tasks.find((task) => task.id === activeTaskId) ?? null : null;
   const visibleTasks = groupedTasks[activePriority];
 
@@ -160,6 +212,10 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
     }
   }
 
+  function openTask(taskId: string) {
+    router.push(`/tasks/${taskId}?returnTo=${encodeURIComponent('/timeline')}`);
+  }
+
   function handleDragStart(event: DragStartEvent) {
     setActiveTaskId(String(event.active.id));
     setError(null);
@@ -187,7 +243,7 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
   return (
     <div className="timeline-board">
       <p className="lede" style={{ marginTop: 0 }}>
-        Prepni prioritu a podrž úlohu, ak ju chceš presunúť.
+        Najprv veci na vybavenie. Klikni úlohu na úpravu, rúčku použi iba na presun.
       </p>
       {error ? <p className="form-error">{error}</p> : null}
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -203,9 +259,10 @@ export function TimelineBoard({ initialTasks }: { initialTasks: TimelineTask[] }
           ))}
         </div>
         <div className="timeline-list">
+          <div className="timeline-section-label">Na vybavenie</div>
           {visibleTasks.length === 0 ? <p className="timeline-empty">Žiadne úlohy v priorite {taskPriorityLabels[activePriority].toLowerCase()}.</p> : null}
           {visibleTasks.map((task) => (
-            <DraggableTask key={task.id} task={task} onMove={(taskId, priority) => void moveTask(taskId, priority)} isBusy={busy} />
+            <DraggableTask key={task.id} task={task} onMove={(taskId, priority) => void moveTask(taskId, priority)} onOpen={openTask} isBusy={busy} />
           ))}
         </div>
       </DndContext>

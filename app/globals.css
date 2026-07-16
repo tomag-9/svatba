@@ -586,7 +586,56 @@ h1 {
 .checkbox-field {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(88, 61, 39, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.checkbox-field input[type="checkbox"] {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border-radius: 7px;
+  border: 1.5px solid rgba(88, 61, 39, 0.24);
+  background: rgba(255, 255, 255, 0.9);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.checkbox-field input[type="checkbox"]::before {
+  content: "";
+  width: 11px;
+  height: 7px;
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+  transform: rotate(-45deg) scale(0);
+  transform-origin: center;
+  transition: transform 140ms ease;
+}
+
+.checkbox-field input[type="checkbox"]:checked {
+  border-color: transparent;
+  background: var(--accent);
+}
+
+.checkbox-field input[type="checkbox"]:checked::before {
+  transform: rotate(-45deg) scale(1);
+}
+
+.role-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .field input,
@@ -646,6 +695,26 @@ h1 {
   white-space: pre-line;
 }
 
+.task-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.settings-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(88, 61, 39, 0.1);
+}
+
+.settings-section h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
 .timeline-board {
   display: grid;
   gap: 14px;
@@ -689,8 +758,47 @@ h1 {
   touch-action: pan-y;
 }
 
+.timeline-card-clickable {
+  cursor: pointer;
+}
+
+.timeline-card-clickable:focus-visible {
+  outline: 3px solid rgba(155, 79, 47, 0.22);
+  outline-offset: 3px;
+}
+
 .timeline-card.dragging {
   box-shadow: var(--shadow-lift);
+}
+
+.timeline-card-done,
+.table-row.is-done {
+  background: rgba(88, 61, 39, 0.055);
+  border-color: rgba(88, 61, 39, 0.08);
+  box-shadow: none;
+  opacity: 0.72;
+}
+
+.timeline-done-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.timeline-section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.timeline-section-label.done {
+  padding-top: 8px;
+  border-top: 1px solid rgba(88, 61, 39, 0.1);
 }
 
 .timeline-card-top {

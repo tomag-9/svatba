@@ -25,6 +25,14 @@ type TaskCreateFormProps = {
   successPath?: string;
 };
 
+function safeRedirectPath(path?: string) {
+  if (!path || !path.startsWith('/') || path.startsWith('//')) {
+    return undefined;
+  }
+
+  return path;
+}
+
 export function TaskCreateForm({
   initialValues,
   submitLabel = 'Pridať úlohu',
@@ -67,8 +75,9 @@ export function TaskCreateForm({
     }
 
     event.currentTarget.reset();
-    if (successPath) {
-      router.push(successPath);
+    const redirectPath = safeRedirectPath(successPath);
+    if (redirectPath) {
+      router.push(redirectPath);
       return;
     }
 
