@@ -32,7 +32,7 @@ function getAvatarTone(group: string | null) {
 
 export default async function InviteesPage() {
   const guests = await prisma.guest.findMany({
-    orderBy: [{ familyGroup: 'asc' }, { name: 'asc' }]
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }]
   });
   const groups = [
     { key: 'angelika', label: 'Angelika', rows: guests.filter((guest) => guest.familyGroup === 'Angelika' && guest.dinner) },

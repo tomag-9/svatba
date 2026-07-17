@@ -4,7 +4,7 @@ import { parseBoolean, parseGuestAttendance, parseString, readJsonBody } from '@
 
 export async function GET() {
   const guests = await prisma.guest.findMany({
-    orderBy: [{ familyGroup: 'asc' }, { name: 'asc' }]
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }]
   });
 
   return NextResponse.json({ guests });
@@ -25,6 +25,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Meno hosťa je povinné' }, { status: 400 });
   }
 
+  const lastGuest = await prisma.guest.findFirst({
+    orderBy: { sortOrder: 'desc' },
+    select: { sortOrder: true }
+  });
+
   const guest = await prisma.guest.create({
     data: {
       name,
@@ -32,7 +37,8 @@ export async function POST(request: Request) {
       attendance: parseGuestAttendance(body?.attendance) ?? 'YES',
       dinner: parseBoolean(body?.dinner),
       party: parseBoolean(body?.party),
-      notes: parseString(body?.notes)
+      notes: parseString(body?.notes),
+      sortOrder: (lastGuest?.sortOrder ?? 0) + 1
     }
   });
 

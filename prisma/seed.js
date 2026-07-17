@@ -274,7 +274,10 @@ function parseGuests() {
     });
   }
 
-  return Array.from(seen.values());
+  return Array.from(seen.values()).map((guest, index) => ({
+    ...guest,
+    sortOrder: index + 1
+  }));
 }
 
 async function main() {
@@ -295,11 +298,17 @@ async function main() {
   await prisma.guest.createMany({ data: parseGuests() });
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  main()
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
+
+module.exports = {
+  parseGuests
+};

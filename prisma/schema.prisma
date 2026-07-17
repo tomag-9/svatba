@@ -92,6 +92,7 @@ model Guest {
   dinner      Boolean         @default(false)
   party       Boolean         @default(false)
   notes       String?
+  sortOrder   Int             @default(0)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 }
