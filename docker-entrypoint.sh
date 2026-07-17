@@ -19,15 +19,26 @@ const { spawnSync } = require('child_process');
 const prisma = new PrismaClient();
 
 (async () => {
-  const [settingsCount, taskCount, guestCount, expenseCount] = await Promise.all([
+  const [settingsCount, pushSubscriptionCount, pushDeliveryLogCount, taskCount, guestCount, expenseCount] = await Promise.all([
     prisma.weddingSettings.count(),
+    prisma.pushSubscription.count(),
+    prisma.pushDeliveryLog.count(),
     prisma.task.count(),
     prisma.guest.count(),
     prisma.expense.count(),
   ]);
   await prisma.$disconnect();
 
-  if (settingsCount === 0 && taskCount === 0 && guestCount === 0 && expenseCount === 0) {
+  const hasExistingData = [
+    settingsCount,
+    pushSubscriptionCount,
+    pushDeliveryLogCount,
+    taskCount,
+    guestCount,
+    expenseCount,
+  ].some((count) => count > 0);
+
+  if (!hasExistingData) {
     console.log('No app data found, seeding initial data...');
     const result = spawnSync('node', ['prisma/seed.js'], { stdio: 'inherit' });
     if (result.status !== 0) {
