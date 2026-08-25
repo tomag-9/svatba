@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/app-shell';
 import { CategoryIcon } from '@/components/category-icon';
+import { CountdownQuoteReveal } from '@/components/countdown-quote-reveal';
 import { getWeddingAlertSlot } from '@/lib/alert-slot';
 import { taskStatusLabels, weddingRoleLabels } from '@/lib/labels';
 import { prisma } from '@/lib/prisma';
@@ -40,12 +41,16 @@ export default async function DashboardPage() {
       eyebrow="Prehľad"
       title={`Ahoj, ${greetingName}`}
     >
-      <section className="dashboard-countdown">
+      <section className="dashboard-countdown" id="countdown">
         <div className="eyebrow">Do svadby ešte</div>
         <div className="countdown-number">
           {daysUntilWedding === null ? '—' : Math.max(daysUntilWedding, 0)} <span>dní</span>
         </div>
-        <p className="lede" style={{ marginTop: 8 }}>{countdown?.dailyLine ?? 'Odpočet sa zobrazí po uložení dátumu.'}</p>
+        {countdown?.dailyLine ? (
+          <CountdownQuoteReveal quote={countdown.dailyLine} />
+        ) : (
+          <p className="lede" style={{ marginTop: 8 }}>Odpočet sa zobrazí po uložení dátumu.</p>
+        )}
         <div className="compact-meta" style={{ marginTop: 10, color: 'var(--accent)', fontWeight: 700 }}>
           {settings?.venueName ?? 'Miesto nenastavené'} · {weddingDate}
         </div>

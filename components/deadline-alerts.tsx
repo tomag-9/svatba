@@ -26,6 +26,8 @@ type AlertsResponse = {
     title: string;
     subtitle: string;
     dailyLine: string;
+    notificationTitle?: string;
+    notificationBody?: string;
   } | null;
 };
 
@@ -68,13 +70,8 @@ export function DeadlineAlerts() {
         lastRunKey.current = currentKey;
 
         if (payload.countdown?.title) {
-          notify(payload.countdown.title, payload.countdown.dailyLine);
+          notify(payload.countdown.notificationTitle ?? payload.countdown.title, payload.countdown.notificationBody ?? 'Pozri citát na dnes.');
         }
-
-        payload.dueTasks.slice(0, 3).forEach((task) => {
-          const deadlineLabel = typeof task.deadline === 'string' ? task.deadline.slice(0, 10) : task.deadline ? new Date(task.deadline).toISOString().slice(0, 10) : 'TBD';
-          notify(`Deadline: ${task.title}`, `Termín: ${deadlineLabel}. Status: ${task.status}.`);
-        });
       } catch {
         // ignore network errors while offline
       }

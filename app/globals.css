@@ -934,6 +934,39 @@ h1 {
   font-size: 1.4rem;
 }
 
+.countdown-quote {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.countdown-quote .lede {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.countdown-quote-toggle {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  min-height: 38px;
+  margin-top: -4px;
+  border: 1px solid rgba(88, 61, 39, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.54);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.countdown-quote-toggle:hover {
+  background: rgba(255, 255, 255, 0.76);
+}
+
 .progress-track {
   height: 8px;
   border-radius: 999px;

@@ -21,6 +21,9 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
+  const [quoteDraft, setQuoteDraft] = useState('');
+  const [quoteStatus, setQuoteStatus] = useState<string | null>(null);
+  const [isSavingQuote, setIsSavingQuote] = useState(false);
   const [role, setRole] = useState<WeddingRoleValue>(initialValues?.role ?? 'TOMI');
 
   function persistRole(nextRole: WeddingRoleValue) {
@@ -151,6 +154,38 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
     router.refresh();
   }
 
+  async function addCountdownQuote() {
+    const line = quoteDraft.trim();
+
+    if (!line) {
+      setQuoteStatus(null);
+      setError('Napíš citát, ktorý chceš pridať.');
+      return;
+    }
+
+    setError(null);
+    setQuoteStatus(null);
+    setIsSavingQuote(true);
+
+    const response = await fetch('/api/countdown-lines', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ line })
+    });
+
+    setIsSavingQuote(false);
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setError(payload?.error ?? 'Citát sa nepodarilo uložiť.');
+      return;
+    }
+
+    setQuoteDraft('');
+    setQuoteStatus('Citát je uložený a zaradený na koniec aktuálneho cyklu.');
+    router.refresh();
+  }
+
   return (
     <form className="form-grid" onSubmit={handleSubmit}>
       <label className="field">
@@ -192,6 +227,32 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
           <textarea name="notes" defaultValue={initialValues?.notes ?? ''} rows={7} placeholder="Nápady, dohody, otázky na sálu, veci na prebrať..." />
         </label>
       </section>
+      {role === 'TOMI' ? (
+        <section className="settings-section">
+          <div>
+            <h3>Nový citát</h3>
+            <p className="compact-meta">Dopíše sa do countdown súboru a zaradí sa na koniec aktuálneho cyklu.</p>
+          </div>
+          <label className="field">
+            <span>Citát pre Angie</span>
+            <input
+              maxLength={240}
+              value={quoteDraft}
+              onChange={(event) => setQuoteDraft(event.target.value)}
+              placeholder="A potom..."
+            />
+          </label>
+          <button
+            className="button button-ghost"
+            type="button"
+            disabled={isSavingQuote}
+            onClick={() => void addCountdownQuote()}
+          >
+            {isSavingQuote ? 'Pridávam...' : 'Pridať citát'}
+          </button>
+          {quoteStatus ? <p className="lede">{quoteStatus}</p> : null}
+        </section>
+      ) : null}
       <label className="field checkbox-field">
         <input name="deadlineAlertsEnabled" type="checkbox" defaultChecked={initialValues?.deadlineAlertsEnabled ?? false} />
         <span>Zapnúť upozornenia na deadliny</span>

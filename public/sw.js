@@ -67,24 +67,10 @@ async function runBackgroundAlertCheck() {
 
   await storeAlertKey(currentKey);
   await showAlertNotification({
-    title: alerts.countdown.title,
-    body: alerts.countdown.dailyLine,
-    url: '/dashboard'
+    title: alerts.countdown.notificationTitle ?? alerts.countdown.title,
+    body: alerts.countdown.notificationBody ?? 'Pozri citát na dnes.',
+    url: '/dashboard#countdown'
   });
-
-  for (const task of alerts.dueTasks.slice(0, 3)) {
-    const deadlineLabel = typeof task.deadline === 'string'
-      ? task.deadline.slice(0, 10)
-      : task.deadline
-        ? new Date(task.deadline).toISOString().slice(0, 10)
-        : 'TBD';
-
-    await showAlertNotification({
-      title: `Deadline: ${task.title}`,
-      body: `Termín: ${deadlineLabel}. Status: ${task.status}.`,
-      url: '/tasks'
-    });
-  }
 }
 
 self.addEventListener('install', (event) => {
@@ -142,7 +128,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(self.clients.openWindow(event.notification.data?.url ?? '/dashboard'));
+  event.waitUntil(self.clients.openWindow(event.notification.data?.url ?? '/dashboard#countdown'));
 });
 
 self.addEventListener('periodicsync', (event) => {

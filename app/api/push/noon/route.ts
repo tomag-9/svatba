@@ -2,10 +2,9 @@ import { NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/prisma';
 import { broadcastPushNotification } from '@/lib/push';
-import { getWeddingCountdownCopy } from '@/lib/wedding-copy';
+import { getWeddingNotificationCopy } from '@/lib/wedding-copy';
 
 const DAY_MS = 1000 * 60 * 60 * 24;
-const NOON_SLOT = 'afternoon';
 
 function getLocalDateKey(date = new Date()) {
   return new Intl.DateTimeFormat('en-CA', {
@@ -40,19 +39,12 @@ export async function POST(request: Request) {
 
   const settings = await prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } });
   const daysUntilWedding = settings?.weddingDate ? Math.ceil((settings.weddingDate.getTime() - Date.now()) / DAY_MS) : null;
-  const countdown = settings
-    ? getWeddingCountdownCopy({
-        daysUntilWedding,
-        role: 'ANGIE',
-        slot: NOON_SLOT,
-        isApproximate: settings.weddingDateApproximate
-      })
-    : null;
+  const notification = getWeddingNotificationCopy(daysUntilWedding, settings?.weddingDateApproximate ?? false);
 
   const payload = {
-    title: countdown?.title ?? 'Svadba planner',
-    body: countdown?.dailyLine ?? 'Svadobný odpočet na dnes.',
-    url: '/dashboard'
+    title: notification.title,
+    body: notification.body,
+    url: '/dashboard#countdown'
   };
 
   try {
