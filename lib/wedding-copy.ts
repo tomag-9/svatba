@@ -336,3 +336,37 @@ export async function appendAngieCountdownLine(line: string) {
 
   return cleanedLine;
 }
+
+export async function applyCountdownLineNowByText(lineText: string) {
+  const cleanedLine = lineText.trim().replace(/\s+/g, ' ');
+  if (!cleanedLine) throw new Error('Citát nemôže byť prázdny.');
+
+  const lines = await readAllCountdownLines();
+
+  const deckKey = 'SHARED';
+  const dayKey = getLocalDayKey();
+  const state = await readCountdownCycleState();
+  const deck = state.decks[deckKey] ?? {
+    knownLines: [...lines],
+    order: shuffleLines(lines, hashString(`${deckKey}:0`)),
+    index: 0,
+    cycle: 0,
+    currentDayKey: null,
+    currentLine: null
+  };
+
+  // ensure deck knows about this line
+  if (!deck.knownLines.includes(cleanedLine)) {
+    deck.knownLines.push(cleanedLine);
+    deck.order.push(cleanedLine);
+  }
+
+  syncDeckWithLines(deck, [...new Set([...deck.knownLines, ...lines])]);
+
+  deck.currentLine = cleanedLine;
+  deck.currentDayKey = dayKey;
+  state.decks[deckKey] = deck;
+  await writeCountdownCycleState(state);
+
+  return cleanedLine;
+}

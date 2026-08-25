@@ -43,20 +43,24 @@ export async function GET() {
     } catch {
       fileLines = [];
     }
+    // Ensure all file lines exist in DB (append-only import, deduplicated)
+    if (fileLines.length > 0) {
+      try {
+        await prisma.countdownLine.createMany({ data: fileLines.map((text) => ({ text })), skipDuplicates: true });
+      } catch {
+        // fallback to individual upserts if createMany unsupported or fails
+        for (const text of fileLines) {
+          try {
+            // create if not exists
+            await prisma.countdownLine.upsert({ where: { text }, create: { text }, update: {} });
+          } catch {}
+        }
+      }
+    }
 
     const dbLines = await prisma.countdownLine.findMany({ orderBy: { createdAt: 'asc' }, select: { id: true, text: true } });
 
-    const map = new Map<string, { id?: string; text: string; source: 'db' | 'file' }>();
-
-    for (const d of dbLines) {
-      map.set(d.text, { id: d.id, text: d.text, source: 'db' });
-    }
-
-    for (const t of fileLines) {
-      if (!map.has(t)) map.set(t, { text: t, source: 'file' });
-    }
-
-    return NextResponse.json({ lines: Array.from(map.values()) });
+    return NextResponse.json({ lines: dbLines });
   } catch (err) {
     return NextResponse.json({ error: 'Nepodarilo sa načítať citáty.' }, { status: 500 });
   }
