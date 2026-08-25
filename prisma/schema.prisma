@@ -67,6 +67,7 @@ model CountdownLine {
   id        String   @id @default(cuid())
   text      String   @unique
   source    String   @default("settings")
+  blocked   Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([createdAt])

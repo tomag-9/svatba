@@ -47,19 +47,39 @@ const fallbackAngieCountdownLines = [
   'A potom ti budem prdieť pod perinu.'
 ];
 
-function readAngieCountdownLines() {
+function readAngieCountdownLinesFromFile() {
   try {
-    const lines = parseCountdownLines(readFileSync(angieCountdownLinesPath, 'utf8'));
-
-    return lines.length > 0 ? lines : fallbackAngieCountdownLines;
+    return parseCountdownLines(readFileSync(angieCountdownLinesPath, 'utf8'));
   } catch {
-    return fallbackAngieCountdownLines;
+    return [];
+  }
+}
+
+// Import any lines present in the source .txt file into the DB (append-only,
+// deduplicated, respects `blocked` so a deleted/edited-away file line never
+// resurfaces). Safe to call on every read - it's a cheap no-op once imported.
+export async function syncFileLinesIntoDb() {
+  const fileLines = readAngieCountdownLinesFromFile();
+  if (fileLines.length === 0) return;
+
+  try {
+    await prisma.countdownLine.createMany({
+      data: fileLines.map((text) => ({ text, source: 'file', blocked: false })),
+      skipDuplicates: true
+    });
+  } catch {
+    for (const text of fileLines) {
+      try {
+        await prisma.countdownLine.upsert({ where: { text }, create: { text, source: 'file', blocked: false }, update: {} });
+      } catch {}
+    }
   }
 }
 
 async function readStoredCountdownLines() {
   try {
     const lines = await prisma.countdownLine.findMany({
+      where: { blocked: false },
       orderBy: { createdAt: 'asc' },
       select: { text: true }
     });
@@ -71,8 +91,9 @@ async function readStoredCountdownLines() {
 }
 
 async function readAllCountdownLines() {
-  const lines = [...readAngieCountdownLines(), ...(await readStoredCountdownLines())];
-  return Array.from(new Set(lines));
+  await syncFileLinesIntoDb();
+  const lines = await readStoredCountdownLines();
+  return lines.length > 0 ? Array.from(new Set(lines)) : fallbackAngieCountdownLines;
 }
 
 function parseCountdownLines(text: string) {

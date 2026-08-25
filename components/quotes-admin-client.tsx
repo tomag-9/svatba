@@ -8,6 +8,7 @@ type Quote = { id: string; text: string };
 export default function QuotesAdminClient() {
   const router = useRouter();
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const count = quotes.length;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -113,8 +114,8 @@ export default function QuotesAdminClient() {
           <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={240} />
         </label>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="button" onClick={() => void create()}>Pridať</button>
-          <button className="button button-ghost" onClick={() => router.back()}>Späť</button>
+          <button className="btn btn-sm" onClick={() => void create()}>Pridať</button>
+          <button className="btn btn-sm btn-ghost" onClick={() => router.back()}>Späť</button>
         </div>
       </div>
 
