@@ -1,5 +1,5 @@
 import type { WeddingRole } from '@prisma/client';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, unlinkSync } from 'node:fs';
 import path from 'node:path';
 import { prisma } from '@/lib/prisma';
 
@@ -31,6 +31,7 @@ type CountdownCycleState = {
 };
 
 const angieCountdownLinesPath = path.join(process.cwd(), 'data', 'angie-countdown-lines.txt');
+const angieCountdownReloadMarker = path.join(process.cwd(), 'data', 'angie-countdown-lines.reload');
 const countdownCycleStateKey = 'shared-countdown-lines';
 
 const fallbackAngieCountdownLines = [
@@ -80,6 +81,44 @@ function parseCountdownLines(text: string) {
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith('#'));
 }
+
+async function performOneTimeReloadIfRequested() {
+  try {
+    if (!existsSync(angieCountdownReloadMarker)) return;
+
+    const fileText = readFileSync(angieCountdownLinesPath, 'utf8');
+    const lines = Array.from(new Set(parseCountdownLines(fileText)));
+
+    // Replace all stored countdown lines with the ones from the file.
+    await prisma.$transaction(async (tx) => {
+      await tx.countdownLine.deleteMany({});
+
+      if (lines.length > 0) {
+        // createMany with skipDuplicates if supported; fallback to multiple creates is fine too
+        try {
+          await tx.countdownLine.createMany({ data: lines.map((text) => ({ text })), skipDuplicates: true });
+        } catch {
+          for (const text of lines) {
+            // best-effort insert
+            // eslint-disable-next-line no-await-in-loop
+            await tx.countdownLine.create({ data: { text } });
+          }
+        }
+      }
+    });
+
+    try {
+      unlinkSync(angieCountdownReloadMarker);
+    } catch {}
+  } catch (err) {
+    // do not break runtime on failures here
+    // eslint-disable-next-line no-console
+    console.error('Countdown reload failed:', err);
+  }
+}
+
+// Fire-and-forget: if repo deploy includes the marker file, perform a one-time reload
+void performOneTimeReloadIfRequested();
 
 function getLocalDayKey(date = new Date()) {
   return new Intl.DateTimeFormat('en-CA', {

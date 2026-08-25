@@ -230,27 +230,18 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
       {role === 'TOMI' ? (
         <section className="settings-section">
           <div>
-            <h3>Nový citát</h3>
-            <p className="compact-meta">Uloží sa do databázy a zaradí sa na koniec aktuálneho cyklu.</p>
+            <h3>Citáty pre Angie</h3>
+            <p className="compact-meta">Spravuj všetky citáty (pridať/úprava/mazanie).</p>
           </div>
-          <label className="field">
-            <span>Citát pre Angie</span>
-            <input
-              maxLength={240}
-              value={quoteDraft}
-              onChange={(event) => setQuoteDraft(event.target.value)}
-              placeholder="A potom..."
-            />
-          </label>
-          <button
-            className="button button-ghost"
-            type="button"
-            disabled={isSavingQuote}
-            onClick={() => void addCountdownQuote()}
-          >
-            {isSavingQuote ? 'Pridávam...' : 'Pridať citát'}
-          </button>
-          {quoteStatus ? <p className="lede">{quoteStatus}</p> : null}
+          <div className="field">
+            <button
+              className="button button-ghost"
+              type="button"
+              onClick={() => router.push('/settings/quotes')}
+            >
+              Otvoriť správu citátov
+            </button>
+          </div>
         </section>
       ) : null}
       <label className="field checkbox-field">
