@@ -1,6 +1,7 @@
 import type { WeddingRole } from '@prisma/client';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { prisma } from '@/lib/prisma';
 
 export type WeddingAlertSlot = 'morning' | 'afternoon' | 'evening';
 
@@ -30,7 +31,7 @@ type CountdownCycleState = {
 };
 
 const angieCountdownLinesPath = path.join(process.cwd(), 'data', 'angie-countdown-lines.txt');
-const countdownCycleStatePath = path.join(process.cwd(), 'data', 'countdown-cycle-state.json');
+const countdownCycleStateKey = 'shared-countdown-lines';
 
 const fallbackAngieCountdownLines = [
   'A potom už budeš slobodne neslobodná.',
@@ -53,6 +54,24 @@ function readAngieCountdownLines() {
   } catch {
     return fallbackAngieCountdownLines;
   }
+}
+
+async function readStoredCountdownLines() {
+  try {
+    const lines = await prisma.countdownLine.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: { text: true }
+    });
+
+    return lines.map((line) => line.text);
+  } catch {
+    return [];
+  }
+}
+
+async function readAllCountdownLines() {
+  const lines = [...readAngieCountdownLines(), ...(await readStoredCountdownLines())];
+  return Array.from(new Set(lines));
 }
 
 function parseCountdownLines(text: string) {
@@ -105,21 +124,22 @@ function shuffleLines(lines: string[], seed: number) {
   return shuffled;
 }
 
-function readCountdownCycleState(): CountdownCycleState {
-  if (!existsSync(countdownCycleStatePath)) {
-    return { decks: {} };
-  }
-
+async function readCountdownCycleState(): Promise<CountdownCycleState> {
   try {
-    const state = JSON.parse(readFileSync(countdownCycleStatePath, 'utf8')) as CountdownCycleState;
+    const record = await prisma.countdownCycleState.findUnique({ where: { key: countdownCycleStateKey } });
+    const state = record?.state as CountdownCycleState | null;
     return state?.decks && typeof state.decks === 'object' ? state : { decks: {} };
   } catch {
     return { decks: {} };
   }
 }
 
-function writeCountdownCycleState(state: CountdownCycleState) {
-  writeFileSync(countdownCycleStatePath, `${JSON.stringify(state, null, 2)}\n`);
+async function writeCountdownCycleState(state: CountdownCycleState) {
+  await prisma.countdownCycleState.upsert({
+    where: { key: countdownCycleStateKey },
+    update: { state },
+    create: { key: countdownCycleStateKey, state }
+  });
 }
 
 function syncDeckWithLines(deck: CountdownDeckState, lines: string[]) {
@@ -138,10 +158,10 @@ function syncDeckWithLines(deck: CountdownDeckState, lines: string[]) {
   }
 }
 
-function pickLine(lines: string[]) {
+async function pickLine(lines: string[]) {
   const deckKey = 'SHARED';
   const dayKey = getLocalDayKey();
-  const state = readCountdownCycleState();
+  const state = await readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
     knownLines: [...lines],
     order: shuffleLines(lines, hashString(`${deckKey}:0`)),
@@ -155,7 +175,7 @@ function pickLine(lines: string[]) {
 
   if (deck.currentDayKey === dayKey && deck.currentLine) {
     state.decks[deckKey] = deck;
-    writeCountdownCycleState(state);
+    await writeCountdownCycleState(state);
     return deck.currentLine;
   }
 
@@ -171,16 +191,16 @@ function pickLine(lines: string[]) {
   deck.currentLine = line;
   deck.knownLines = [...lines];
   state.decks[deckKey] = deck;
-  writeCountdownCycleState(state);
+  await writeCountdownCycleState(state);
 
   return line;
 }
 
-function selectLines() {
-  return readAngieCountdownLines();
+async function selectLines() {
+  return readAllCountdownLines();
 }
 
-export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'morning', isApproximate = false }: WeddingCopyInput) {
+export async function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'morning', isApproximate = false }: WeddingCopyInput) {
   if (daysUntilWedding === null) {
     return {
       title: 'Nastav dátum svadby',
@@ -202,7 +222,7 @@ export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'mornin
       : daysUntilWedding === 1
         ? 'Zajtra je svadba.'
         : `O ${daysUntilWedding} dní bude svadba.`;
-  const line = pickLine(selectLines());
+  const line = await pickLine(await selectLines());
   const notification = getWeddingNotificationCopy(daysUntilWedding, isApproximate);
 
   return {
@@ -243,7 +263,7 @@ export function getDeadlineNotificationCopy(daysUntilWedding: number | null, _ro
   return `${notification.title} ${notification.body}`;
 }
 
-export function appendAngieCountdownLine(line: string) {
+export async function appendAngieCountdownLine(line: string) {
   const cleanedLine = line.trim().replace(/\s+/g, ' ');
 
   if (!cleanedLine) {
@@ -254,18 +274,16 @@ export function appendAngieCountdownLine(line: string) {
     throw new Error('Citát môže mať najviac 240 znakov.');
   }
 
-  const existingText = existsSync(angieCountdownLinesPath) ? readFileSync(angieCountdownLinesPath, 'utf8') : '';
-  const existingLines = parseCountdownLines(existingText);
+  const existingLines = await readAllCountdownLines();
 
   if (existingLines.includes(cleanedLine)) {
     throw new Error('Tento citát už existuje.');
   }
 
-  const separator = existingText.length > 0 && !existingText.endsWith('\n') ? '\n' : '';
-  writeFileSync(angieCountdownLinesPath, `${existingText}${separator}${cleanedLine}\n`);
+  await prisma.countdownLine.create({ data: { text: cleanedLine } });
 
   const nextLines = [...existingLines, cleanedLine];
-  const state = readCountdownCycleState();
+  const state = await readCountdownCycleState();
 
   for (const [deckKey, deck] of Object.entries(state.decks)) {
     if (deckKey !== 'SHARED' && !deckKey.startsWith('ANGIE')) {
@@ -275,7 +293,7 @@ export function appendAngieCountdownLine(line: string) {
     syncDeckWithLines(deck, nextLines);
   }
 
-  writeCountdownCycleState(state);
+  await writeCountdownCycleState(state);
 
   return cleanedLine;
 }

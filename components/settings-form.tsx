@@ -182,7 +182,7 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
     }
 
     setQuoteDraft('');
-    setQuoteStatus('Citát je uložený a zaradený na koniec aktuálneho cyklu.');
+    setQuoteStatus('Citát je uložený v databáze a zaradený na koniec aktuálneho cyklu.');
     router.refresh();
   }
 
@@ -231,7 +231,7 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
         <section className="settings-section">
           <div>
             <h3>Nový citát</h3>
-            <p className="compact-meta">Dopíše sa do countdown súboru a zaradí sa na koniec aktuálneho cyklu.</p>
+            <p className="compact-meta">Uloží sa do databázy a zaradí sa na koniec aktuálneho cyklu.</p>
           </div>
           <label className="field">
             <span>Citát pre Angie</span>

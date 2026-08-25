@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   const budgetTarget = settings?.budgetTarget ? Number(settings.budgetTarget) : null;
   const budgetPercent = budgetTarget ? Math.min(100, Math.round((totalSpent / budgetTarget) * 100)) : 0;
   const daysUntilWedding = settings?.weddingDate ? Math.ceil((settings.weddingDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-  const countdown = settings ? getWeddingCountdownCopy({ daysUntilWedding, role, slot: getWeddingAlertSlot(), isApproximate: settings.weddingDateApproximate }) : null;
+  const countdown = settings ? await getWeddingCountdownCopy({ daysUntilWedding, role, slot: getWeddingAlertSlot(), isApproximate: settings.weddingDateApproximate }) : null;
   const yesGuests = guests.filter((guest) => guest.attendance === 'YES').length;
   const maybeGuests = guests.filter((guest) => guest.attendance === 'MAYBE').length;
   const weddingDate = settings?.weddingDate

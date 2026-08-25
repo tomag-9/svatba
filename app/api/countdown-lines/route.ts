@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   const line = typeof body?.line === 'string' ? body.line : '';
 
   try {
-    const savedLine = appendAngieCountdownLine(line);
+    const savedLine = await appendAngieCountdownLine(line);
     return NextResponse.json({ ok: true, line: savedLine });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Citát sa nepodarilo uložiť.' }, { status: 400 });
