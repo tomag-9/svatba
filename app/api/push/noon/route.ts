@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   };
 
   try {
-    const result = await broadcastPushNotification(payload, { role: 'ANGIE' });
+    const result = await broadcastPushNotification(payload);
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Push send failed' }, { status: 500 });

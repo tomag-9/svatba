@@ -62,24 +62,6 @@ function parseCountdownLines(text: string) {
     .filter((line) => line.length > 0 && !line.startsWith('#'));
 }
 
-const tomiLines: Record<WeddingAlertSlot, string[]> = {
-  morning: [
-    'Dobré ráno, Tomi. Dnes sa svadba zase o čosi viac približuje.',
-    'Ranný režim: jeden krok k manželskému módu navyše.',
-    'Tomi, dnes je dobrý deň na to posunúť prípravy dopredu.'
-  ],
-  afternoon: [
-    'Popoludní je čas doladiť veci, ktoré zajtra nechceš riešiť narýchlo.',
-    'Svadba sa blíži a dnes môžeš spraviť jeden praktický krok navyše.',
-    'Poobede platí jednoduché pravidlo: čo sa dá pripraviť dnes, je vyhrané.'
-  ],
-  evening: [
-    'Večer už len krátky check a potom pokoj pred ďalším dňom.',
-    'Tomi, dnešok je za tebou. Zajtra svadba čaká ďalší posun.',
-    'Večerný reminder: je to bližšie než včera, takže plán stále funguje.'
-  ]
-};
-
 function getLocalDayKey(date = new Date()) {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Bratislava',
@@ -156,8 +138,8 @@ function syncDeckWithLines(deck: CountdownDeckState, lines: string[]) {
   }
 }
 
-function pickLine(lines: string[], role: WeddingRole, slot: WeddingAlertSlot) {
-  const deckKey = role === 'ANGIE' ? role : `${role}:${slot}`;
+function pickLine(lines: string[]) {
+  const deckKey = 'SHARED';
   const dayKey = getLocalDayKey();
   const state = readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
@@ -194,8 +176,8 @@ function pickLine(lines: string[], role: WeddingRole, slot: WeddingAlertSlot) {
   return line;
 }
 
-function selectLines(role: WeddingRole, slot: WeddingAlertSlot) {
-  return role === 'ANGIE' ? readAngieCountdownLines() : tomiLines[slot];
+function selectLines() {
+  return readAngieCountdownLines();
 }
 
 export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'morning', isApproximate = false }: WeddingCopyInput) {
@@ -220,7 +202,7 @@ export function getWeddingCountdownCopy({ daysUntilWedding, role, slot = 'mornin
       : daysUntilWedding === 1
         ? 'Zajtra je svadba.'
         : `O ${daysUntilWedding} dní bude svadba.`;
-  const line = pickLine(selectLines(role, slot), role, slot);
+  const line = pickLine(selectLines());
   const notification = getWeddingNotificationCopy(daysUntilWedding, isApproximate);
 
   return {
@@ -286,7 +268,7 @@ export function appendAngieCountdownLine(line: string) {
   const state = readCountdownCycleState();
 
   for (const [deckKey, deck] of Object.entries(state.decks)) {
-    if (!deckKey.startsWith('ANGIE')) {
+    if (deckKey !== 'SHARED' && !deckKey.startsWith('ANGIE')) {
       continue;
     }
 
