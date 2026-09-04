@@ -224,7 +224,7 @@ async function pickLine(lines: string[]) {
   const state = await readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
     knownLines: [...lines],
-    order: shuffleLines(lines, hashString(`${deckKey}:0`)),
+    order: [...lines],
     index: 0,
     cycle: 0,
     currentDayKey: null,
@@ -241,7 +241,7 @@ async function pickLine(lines: string[]) {
 
   if (deck.index >= deck.order.length) {
     deck.cycle += 1;
-    deck.order = shuffleLines(lines, hashString(`${deckKey}:${deck.cycle}`));
+    deck.order = [...lines];
     deck.index = 0;
   }
 
