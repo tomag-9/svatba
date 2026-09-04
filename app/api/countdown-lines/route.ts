@@ -12,11 +12,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Nové citáty môže pridávať iba Tomi.' }, { status: 403 });
   }
 
-  const body = await readJsonBody<{ line?: unknown }>(request);
+  const body = await readJsonBody<{ line?: unknown; mediaDataUrl?: unknown; mediaAlt?: unknown; mediaDescription?: unknown; mediaType?: unknown }>(request);
   const line = typeof body?.line === 'string' ? body.line : '';
+  const mediaDataUrl = typeof body?.mediaDataUrl === 'string' ? body.mediaDataUrl.trim() : '';
+  const mediaAlt = typeof body?.mediaAlt === 'string' ? body.mediaAlt.trim() : '';
+  const mediaDescription = typeof body?.mediaDescription === 'string' ? body.mediaDescription.trim() : '';
+  const mediaType = typeof body?.mediaType === 'string' ? body.mediaType.trim() : 'image';
 
   try {
-    const savedLine = await appendAngieCountdownLine(line);
+    const savedLine = await appendAngieCountdownLine(line, {
+      mediaDataUrl: mediaDataUrl || null,
+      mediaAlt: mediaAlt || null,
+      mediaDescription: mediaDescription || null,
+      mediaType: mediaType || 'image'
+    });
     return NextResponse.json({ ok: true, line: savedLine });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Citát sa nepodarilo uložiť.' }, { status: 400 });
@@ -31,8 +40,16 @@ export async function GET() {
     const dbLines = await prisma.countdownLine.findMany({
       where: { blocked: false },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: { id: true, text: true, sortOrder: true }
-    });
+      select: {
+        id: true,
+        text: true,
+        sortOrder: true,
+        mediaDataUrl: true,
+        mediaAlt: true,
+        mediaDescription: true,
+        mediaType: true
+      }
+    } as any);
 
     return NextResponse.json({ lines: dbLines });
   } catch (err) {
@@ -47,9 +64,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Nevyhovujúce oprávnenie.' }, { status: 403 });
   }
 
-  const body = await readJsonBody<{ id?: unknown; text?: unknown; order?: unknown }>(request);
+  const body = await readJsonBody<{ id?: unknown; text?: unknown; order?: unknown; mediaDataUrl?: unknown; mediaAlt?: unknown; mediaDescription?: unknown; mediaType?: unknown }>(request);
   const id = typeof body?.id === 'string' ? body.id : '';
   const text = typeof body?.text === 'string' ? body.text.trim().replace(/\s+/g, ' ') : '';
+  const mediaDataUrl = typeof body?.mediaDataUrl === 'string' ? body.mediaDataUrl.trim() : undefined;
+  const mediaAlt = typeof body?.mediaAlt === 'string' ? body.mediaAlt.trim() : undefined;
+  const mediaDescription = typeof body?.mediaDescription === 'string' ? body.mediaDescription.trim() : undefined;
+  const mediaType = typeof body?.mediaType === 'string' ? body.mediaType.trim() : undefined;
   const order = Array.isArray(body?.order) ? body.order.filter((value): value is string => typeof value === 'string') : null;
 
   if (order && order.length > 0) {
@@ -94,8 +115,22 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    // Update the record and mark as user-managed
-    await prisma.countdownLine.update({ where: { id }, data: { text, source: 'settings', blocked: false } });
+    const mediaUpdate = {
+      mediaDataUrl: typeof mediaDataUrl === 'string' ? (mediaDataUrl || null) : undefined,
+      mediaAlt: typeof mediaAlt === 'string' ? (mediaAlt || null) : undefined,
+      mediaDescription: typeof mediaDescription === 'string' ? (mediaDescription || null) : undefined,
+      mediaType: typeof mediaType === 'string' ? (mediaType || 'image') : undefined
+    };
+
+    await prisma.countdownLine.update({
+      where: { id },
+      data: {
+        text,
+        source: 'settings',
+        blocked: false,
+        ...mediaUpdate
+      }
+    });
 
     // If the original was from file and text changed, ensure original text won't be re-imported
     if (existingRecord.source === 'file' && existingRecord.text !== text) {

@@ -26,6 +26,14 @@ type CountdownDeckState = {
   currentLine: string | null;
 };
 
+type CountdownLineEntry = {
+  text: string;
+  mediaDataUrl?: string | null;
+  mediaAlt?: string | null;
+  mediaDescription?: string | null;
+  mediaType?: string | null;
+};
+
 type CountdownCycleState = {
   decks: Record<string, CountdownDeckState>;
 };
@@ -34,17 +42,17 @@ const angieCountdownLinesPath = path.join(process.cwd(), 'data', 'angie-countdow
 const angieCountdownReloadMarker = path.join(process.cwd(), 'data', 'angie-countdown-lines.reload');
 const countdownCycleStateKey = 'shared-countdown-lines';
 
-const fallbackAngieCountdownLines = [
-  'A potom už budeš slobodne neslobodná.',
-  'A potom už budeš celá moja.',
-  'A potom už som ja tvoj domov.',
-  'A potom mi už budeš môcť stále variť.',
-  'A potom bude moja peňaženka naša peňaženka.',
-  'A potom sa budeš zobúdzať vedľa mňa.',
-  'A potom budeme žiť našu slobodu.',
-  'A potom sa začne raj na zemi.',
-  'A potom budeš mať doživotný subscription na mňa.',
-  'A potom ti budem prdieť pod perinu.'
+const fallbackAngieCountdownLines: CountdownLineEntry[] = [
+  { text: 'A potom už budeš slobodne neslobodná.' },
+  { text: 'A potom už budeš celá moja.' },
+  { text: 'A potom už som ja tvoj domov.' },
+  { text: 'A potom mi už budeš môcť stále variť.' },
+  { text: 'A potom bude moja peňaženka naša peňaženka.' },
+  { text: 'A potom sa budeš zobúdzať vedľa mňa.' },
+  { text: 'A potom budeme žiť našu slobodu.' },
+  { text: 'A potom sa začne raj na zemi.' },
+  { text: 'A potom budeš mať doživotný subscription na mňa.' },
+  { text: 'A potom ti budem prdieť pod perinu.' }
 ];
 
 function readAngieCountdownLinesFromFile() {
@@ -76,24 +84,36 @@ export async function syncFileLinesIntoDb() {
   }
 }
 
-async function readStoredCountdownLines() {
+async function readStoredCountdownLines(): Promise<CountdownLineEntry[]> {
   try {
     const lines = await prisma.countdownLine.findMany({
       where: { blocked: false },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      select: { text: true }
+      select: {
+        text: true,
+        mediaDataUrl: true,
+        mediaAlt: true,
+        mediaDescription: true,
+        mediaType: true
+      }
     });
 
-    return lines.map((line) => line.text);
+    return lines.map((line) => ({
+      text: line.text,
+      mediaDataUrl: line.mediaDataUrl ?? null,
+      mediaAlt: line.mediaAlt ?? null,
+      mediaDescription: line.mediaDescription ?? null,
+      mediaType: line.mediaType ?? 'image'
+    }));
   } catch {
     return [];
   }
 }
 
-async function readAllCountdownLines() {
+async function readAllCountdownLines(): Promise<CountdownLineEntry[]> {
   await syncFileLinesIntoDb();
   const lines = await readStoredCountdownLines();
-  return lines.length > 0 ? Array.from(new Set(lines)) : fallbackAngieCountdownLines;
+  return lines.length > 0 ? Array.from(new Map(lines.map((line) => [line.text, line])).values()) : fallbackAngieCountdownLines;
 }
 
 function parseCountdownLines(text: string) {
@@ -218,42 +238,44 @@ function syncDeckWithLines(deck: CountdownDeckState, lines: string[]) {
   }
 }
 
-async function pickLine(lines: string[]) {
+async function pickLine(lines: CountdownLineEntry[]) {
   const deckKey = 'SHARED';
   const dayKey = getLocalDayKey();
   const state = await readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
-    knownLines: [...lines],
-    order: [...lines],
+    knownLines: [...lines.map((line) => line.text)],
+    order: [...lines.map((line) => line.text)],
     index: 0,
     cycle: 0,
     currentDayKey: null,
     currentLine: null
   };
 
-  syncDeckWithLines(deck, lines);
+  syncDeckWithLines(deck, lines.map((line) => line.text));
 
   if (deck.currentDayKey === dayKey && deck.currentLine) {
     state.decks[deckKey] = deck;
     await writeCountdownCycleState(state);
-    return deck.currentLine;
+    const currentText = deck.currentLine;
+    return lines.find((line) => line.text === currentText) ?? lines[0];
   }
 
   if (deck.index >= deck.order.length) {
     deck.cycle += 1;
-    deck.order = [...lines];
+    deck.order = [...lines.map((line) => line.text)];
     deck.index = 0;
   }
 
-  const line = deck.order[deck.index] ?? lines[0];
+  const selectedText = deck.order[deck.index] ?? lines[0]?.text ?? '';
+  const selectedLine = lines.find((line) => line.text === selectedText) ?? lines[0] ?? { text: '' };
   deck.index += 1;
   deck.currentDayKey = dayKey;
-  deck.currentLine = line;
-  deck.knownLines = [...lines];
+  deck.currentLine = selectedText;
+  deck.knownLines = [...lines.map((line) => line.text)];
   state.decks[deckKey] = deck;
   await writeCountdownCycleState(state);
 
-  return line;
+  return selectedLine;
 }
 
 async function selectLines() {
@@ -288,7 +310,13 @@ export async function getWeddingCountdownCopy({ daysUntilWedding, role, slot = '
   return {
     title: label,
     subtitle: isApproximate ? 'Orientačný countdown beží.' : daysUntilWedding === 0 ? 'Je to tu.' : slot === 'evening' ? 'Večerný countdown beží.' : 'Countdown beží.',
-    dailyLine: line,
+    dailyLine: line.text,
+    dailyMedia: line.mediaDataUrl ? {
+      mediaDataUrl: line.mediaDataUrl,
+      mediaAlt: line.mediaAlt ?? line.text,
+      mediaDescription: line.mediaDescription ?? null,
+      mediaType: line.mediaType ?? 'image'
+    } : null,
     notificationTitle: notification.title,
     notificationBody: notification.body
   };
@@ -323,7 +351,15 @@ export function getDeadlineNotificationCopy(daysUntilWedding: number | null, _ro
   return `${notification.title} ${notification.body}`;
 }
 
-export async function appendAngieCountdownLine(line: string) {
+export async function appendAngieCountdownLine(
+  line: string,
+  options?: {
+    mediaDataUrl?: string | null;
+    mediaAlt?: string | null;
+    mediaDescription?: string | null;
+    mediaType?: string | null;
+  }
+) {
   const cleanedLine = line.trim().replace(/\s+/g, ' ');
 
   if (!cleanedLine) {
@@ -335,8 +371,9 @@ export async function appendAngieCountdownLine(line: string) {
   }
 
   const existingLines = await readAllCountdownLines();
+  const existingTexts = existingLines.map((line) => line.text);
 
-  if (existingLines.includes(cleanedLine)) {
+  if (existingTexts.includes(cleanedLine)) {
     throw new Error('Tento citát už existuje.');
   }
 
@@ -349,11 +386,15 @@ export async function appendAngieCountdownLine(line: string) {
   await prisma.countdownLine.create({
     data: {
       text: cleanedLine,
-      sortOrder: (lastOrder?.sortOrder ?? 0) + 1
+      sortOrder: (lastOrder?.sortOrder ?? 0) + 1,
+      mediaDataUrl: options?.mediaDataUrl ?? null,
+      mediaAlt: options?.mediaAlt ?? null,
+      mediaDescription: options?.mediaDescription ?? null,
+      mediaType: options?.mediaType ?? 'image'
     }
   });
 
-  const nextLines = [...existingLines, cleanedLine];
+  const nextTexts = [...existingTexts, cleanedLine];
   const state = await readCountdownCycleState();
 
   for (const [deckKey, deck] of Object.entries(state.decks)) {
@@ -361,7 +402,7 @@ export async function appendAngieCountdownLine(line: string) {
       continue;
     }
 
-    syncDeckWithLines(deck, nextLines);
+    syncDeckWithLines(deck, nextTexts);
   }
 
   await writeCountdownCycleState(state);
@@ -374,26 +415,26 @@ export async function applyCountdownLineNowByText(lineText: string) {
   if (!cleanedLine) throw new Error('Citát nemôže byť prázdny.');
 
   const lines = await readAllCountdownLines();
+  const textLines = lines.map((line) => line.text);
 
   const deckKey = 'SHARED';
   const dayKey = getLocalDayKey();
   const state = await readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
-    knownLines: [...lines],
-    order: shuffleLines(lines, hashString(`${deckKey}:0`)),
+    knownLines: [...textLines],
+    order: shuffleLines(textLines, hashString(`${deckKey}:0`)),
     index: 0,
     cycle: 0,
     currentDayKey: null,
     currentLine: null
   };
 
-  // ensure deck knows about this line
   if (!deck.knownLines.includes(cleanedLine)) {
     deck.knownLines.push(cleanedLine);
     deck.order.push(cleanedLine);
   }
 
-  syncDeckWithLines(deck, [...new Set([...deck.knownLines, ...lines])]);
+  syncDeckWithLines(deck, [...new Set([...deck.knownLines, ...textLines])]);
 
   deck.currentLine = cleanedLine;
   deck.currentDayKey = dayKey;

@@ -64,12 +64,16 @@ model PushDeliveryLog {
 }
 
 model CountdownLine {
-  id        String   @id @default(cuid())
-  text      String   @unique
-  source    String   @default("settings")
-  blocked   Boolean  @default(false)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+  id               String   @id @default(cuid())
+  text             String   @unique
+  source           String   @default("settings")
+  blocked          Boolean  @default(false)
+  sortOrder        Int      @default(0)
+  mediaDataUrl     String?
+  mediaAlt         String?
+  mediaDescription String?
+  mediaType        String?  @default("image")
+  createdAt        DateTime @default(now())
 
   @@index([createdAt])
   @@index([sortOrder])

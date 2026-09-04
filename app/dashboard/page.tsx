@@ -47,7 +47,7 @@ export default async function DashboardPage() {
           {daysUntilWedding === null ? '—' : Math.max(daysUntilWedding, 0)} <span>dní</span>
         </div>
         {countdown?.dailyLine ? (
-          <CountdownQuoteReveal quote={countdown.dailyLine} />
+          <CountdownQuoteReveal quote={countdown.dailyLine} media={countdown.dailyMedia} />
         ) : (
           <p className="lede" style={{ marginTop: 8 }}>Odpočet sa zobrazí po uložení dátumu.</p>
         )}
