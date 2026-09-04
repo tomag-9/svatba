@@ -68,9 +68,11 @@ model CountdownLine {
   text      String   @unique
   source    String   @default("settings")
   blocked   Boolean  @default(false)
+  sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([sortOrder])
 }
 
 model CountdownCycleState {

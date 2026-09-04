@@ -80,7 +80,7 @@ async function readStoredCountdownLines() {
   try {
     const lines = await prisma.countdownLine.findMany({
       where: { blocked: false },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       select: { text: true }
     });
 
@@ -340,7 +340,18 @@ export async function appendAngieCountdownLine(line: string) {
     throw new Error('Tento citát už existuje.');
   }
 
-  await prisma.countdownLine.create({ data: { text: cleanedLine } });
+  const lastOrder = await prisma.countdownLine.findFirst({
+    where: { blocked: false },
+    orderBy: { sortOrder: 'desc' },
+    select: { sortOrder: true }
+  });
+
+  await prisma.countdownLine.create({
+    data: {
+      text: cleanedLine,
+      sortOrder: (lastOrder?.sortOrder ?? 0) + 1
+    }
+  });
 
   const nextLines = [...existingLines, cleanedLine];
   const state = await readCountdownCycleState();

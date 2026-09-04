@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const payload = {
       title: notification.title,
-      body: record.text,
+      body: notification.body,
       url: '/dashboard#countdown'
     };
 

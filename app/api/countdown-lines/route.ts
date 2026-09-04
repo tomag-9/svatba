@@ -28,7 +28,11 @@ export async function GET() {
     // Ensure all file lines exist in DB (append-only import, deduplicated, respects `blocked`)
     await syncFileLinesIntoDb();
 
-    const dbLines = await prisma.countdownLine.findMany({ where: { blocked: false }, orderBy: { createdAt: 'asc' }, select: { id: true, text: true } });
+    const dbLines = await prisma.countdownLine.findMany({
+      where: { blocked: false },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true, text: true, sortOrder: true }
+    });
 
     return NextResponse.json({ lines: dbLines });
   } catch (err) {
@@ -43,9 +47,37 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Nevyhovujúce oprávnenie.' }, { status: 403 });
   }
 
-  const body = await readJsonBody<{ id?: unknown; text?: unknown }>(request);
+  const body = await readJsonBody<{ id?: unknown; text?: unknown; order?: unknown }>(request);
   const id = typeof body?.id === 'string' ? body.id : '';
   const text = typeof body?.text === 'string' ? body.text.trim().replace(/\s+/g, ' ') : '';
+  const order = Array.isArray(body?.order) ? body.order.filter((value): value is string => typeof value === 'string') : null;
+
+  if (order && order.length > 0) {
+    try {
+      const uniqueOrder = [...new Set(order)];
+      const records = await prisma.countdownLine.findMany({
+        where: { id: { in: uniqueOrder }, blocked: false },
+        select: { id: true }
+      });
+
+      if (records.length !== uniqueOrder.length) {
+        return NextResponse.json({ error: 'Niektoré citáty neexistujú.' }, { status: 400 });
+      }
+
+      await prisma.$transaction(
+        uniqueOrder.map((quoteId, index) =>
+          prisma.countdownLine.update({
+            where: { id: quoteId },
+            data: { sortOrder: index + 1 }
+          })
+        )
+      );
+
+      return NextResponse.json({ ok: true });
+    } catch (err) {
+      return NextResponse.json({ error: err instanceof Error ? err.message : 'Zmena poradia zlyhala.' }, { status: 500 });
+    }
+  }
 
   if (!id) return NextResponse.json({ error: 'Chýba id.' }, { status: 400 });
   if (!text) return NextResponse.json({ error: 'Citát nemôže byť prázdny.' }, { status: 400 });

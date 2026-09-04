@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-type Quote = { id: string; text: string };
+type Quote = { id: string; text: string; sortOrder?: number };
 
 export default function QuotesAdminClient() {
   const router = useRouter();
@@ -12,6 +12,7 @@ export default function QuotesAdminClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [draggedId, setDraggedId] = useState<string | null>(null);
 
   const pendingDeletes = useRef<Record<string, { text: string; timeoutId: number }>>({});
   const [hasPending, setHasPending] = useState(false);
@@ -58,6 +59,27 @@ export default function QuotesAdminClient() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Chyba');
+    }
+  }
+
+  async function reorder(nextQuotes: Quote[]) {
+    const order = nextQuotes.map((quote) => quote.id);
+    setQuotes(nextQuotes);
+
+    try {
+      const res = await fetch('/api/countdown-lines', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order })
+      });
+
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error ?? 'Nepodarilo sa zoradiť citáty.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Chyba');
+      await load();
     }
   }
 
@@ -123,9 +145,34 @@ export default function QuotesAdminClient() {
       {error ? <p className="form-error">{error}</p> : null}
 
       <ul className="list">
-        {quotes.map((q) => (
-          <li key={q.id} className="list-item">
-            <QuoteRow quote={q} onDelete={() => scheduleDelete(q)} onSave={(text) => save(q.id, text)} onApply={() => void applyNow(q.id)} />
+        {quotes.map((q, index) => (
+          <li
+            key={q.id}
+            className="list-item"
+            draggable
+            onDragStart={() => setDraggedId(q.id)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={async () => {
+              if (!draggedId || draggedId === q.id) return;
+              const nextQuotes = [...quotes];
+              const draggedIndex = nextQuotes.findIndex((quote) => quote.id === draggedId);
+              const targetIndex = index;
+              if (draggedIndex === -1) return;
+
+              const [moved] = nextQuotes.splice(draggedIndex, 1);
+              nextQuotes.splice(targetIndex, 0, moved);
+              await reorder(nextQuotes);
+              setDraggedId(null);
+            }}
+            onDragEnd={() => setDraggedId(null)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+              <span aria-label="Presunúť citát" style={{ cursor: 'grab', userSelect: 'none', opacity: 0.7 }} title="Potiahni pre presun">⋮⋮</span>
+              <span style={{ minWidth: 24, textAlign: 'center', color: '#666' }}>{index + 1}.</span>
+              <div style={{ flex: 1 }}>
+                <QuoteRow quote={q} onDelete={() => scheduleDelete(q)} onSave={(text) => save(q.id, text)} onApply={() => void applyNow(q.id)} />
+              </div>
+            </div>
           </li>
         ))}
       </ul>
