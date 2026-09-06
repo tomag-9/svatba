@@ -75,9 +75,9 @@ export default async function DashboardPage() {
           <CountdownQuoteReveal
             role={role}
             hasAnsweredToday={hasAnsweredToday}
-            quote={role === 'TOMI' ? tomiQuote : countdown.dailyLine}
-            quoteId={role === 'TOMI' ? (todayResponse?.quoteId ?? undefined) : (countdown.dailyQuoteId ?? undefined)}
-            media={role === 'TOMI' ? tomiMedia : countdown.dailyMedia}
+            quote={role === 'TOMI' || hasAnsweredToday ? tomiQuote : countdown.dailyLine}
+            quoteId={role === 'TOMI' || hasAnsweredToday ? (todayResponse?.quoteId ?? undefined) : (countdown.dailyQuoteId ?? undefined)}
+            media={role === 'TOMI' || hasAnsweredToday ? tomiMedia : countdown.dailyMedia}
           />
         ) : (
           <p className="lede" style={{ marginTop: 8 }}>Odpočet sa zobrazí po uložení dátumu.</p>

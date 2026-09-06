@@ -204,7 +204,7 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
                   return;
                 }
 
-                if (submitted && selectedQuote) {
+                if (answeredToday && (submitted || quote)) {
                   setIsRevealModalOpen(true);
                   return;
                 }
