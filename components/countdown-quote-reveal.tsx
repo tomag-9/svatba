@@ -18,6 +18,15 @@ type CountdownQuoteRevealProps = {
   } | null;
 };
 
+type SelectedQuote = {
+  id?: string | null;
+  text: string;
+  mediaDataUrl?: string | null;
+  mediaAlt?: string | null;
+  mediaDescription?: string | null;
+  mediaType?: string | null;
+};
+
 const moodOptions = [
   { key: 'LUBENE', label: 'Zaľúbené', emoji: '🥰' },
   { key: 'HORNY', label: 'Horny', emoji: '🥵' },
@@ -72,8 +81,45 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
   const [momentText, setMomentText] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedQuote, setSelectedQuote] = useState<SelectedQuote | null>(null);
+  const [selectingQuote, setSelectingQuote] = useState(false);
+  const [quoteSelectionError, setQuoteSelectionError] = useState<string | null>(null);
 
   const currentMood = useMemo(() => moodOptions.find((option) => option.key === selectedMood) ?? null, [selectedMood]);
+  const effectiveQuote = selectedQuote?.text ?? quote;
+  const effectiveMedia = selectedQuote
+    ? selectedQuote.mediaDataUrl
+      ? selectedQuote
+      : null
+    : media;
+
+  async function selectMood(mood: string) {
+    if (isMoodLocked || selectingQuote) return;
+
+    setSelectedMood(mood);
+    setMoodLocked(true);
+    setSelectingQuote(true);
+    setQuoteSelectionError(null);
+
+    try {
+      const response = await fetch('/api/countdown-reveal/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mood })
+      });
+      const payload = await response.json().catch(() => null) as { line?: SelectedQuote; error?: string } | null;
+
+      if (!response.ok || !payload?.line) {
+        throw new Error(payload?.error ?? 'Citát sa nepodarilo vybrať.');
+      }
+
+      setSelectedQuote(payload.line);
+    } catch (error) {
+      setQuoteSelectionError(error instanceof Error ? error.message : 'Citát sa nepodarilo vybrať.');
+    } finally {
+      setSelectingQuote(false);
+    }
+  }
 
   async function submitResponse() {
     if (!selectedMood) return;
@@ -81,8 +127,8 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
     setSaving(true);
     try {
       const payload = {
-        quoteId: quoteId ?? null,
-        quoteText: quote,
+        quoteId: selectedQuote?.id ?? quoteId ?? null,
+        quoteText: effectiveQuote,
         mood: selectedMood,
         method: selectedMethod ?? null,
         bodyPart: selectedBodyPart ?? null,
@@ -122,7 +168,7 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
   const shouldShowQuestions = role === 'ANGIE' && !answeredToday && isRevealed && !submitted;
   const isMoodStepVisible = role === 'ANGIE' && Boolean(selectedMood);
   const isMoodLocked = Boolean(selectedMood) || moodLocked;
-  const isAllowSubmit = Boolean(selectedMood) && (
+  const isAllowSubmit = Boolean(selectedMood && selectedQuote) && (
     selectedMood === 'COMFORT' ||
     selectedMood === 'CALM' ||
     (selectedMood === 'FUNNY' && Boolean(selectedFunnyLength)) ||
@@ -136,7 +182,7 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
     <div className={styles.wrapper}>
       <div className={styles.quoteRow}>
         <p className={styles.quoteText}>
-          {role === 'ANGIE' && !answeredToday && isRevealed && !submitted ? maskQuote(quote) : isRoleVisibleText ? quote : maskQuote(quote)}
+          {role === 'ANGIE' && !answeredToday && isRevealed && !submitted ? maskQuote(effectiveQuote) : isRoleVisibleText ? effectiveQuote : maskQuote(effectiveQuote)}
         </p>
 
         <div className={styles.actions}>
@@ -157,13 +203,13 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
             <span>{role === 'ANGIE' && !answeredToday ? 'Odhaliť' : isRoleVisibleText ? 'Skryť' : 'Odhaliť'}</span>
           </button>
 
-          {media ? (
+          {effectiveMedia ? (
             <button
               className={styles.iconButton}
               type="button"
               aria-label="Otvoriť fotku"
               title="Otvoriť fotku"
-              onClick={() => setIsMediaOpen(true)}
+                  onClick={() => setIsMediaOpen(true)}
             >
               <ImageIcon size={18} aria-hidden="true" />
             </button>
@@ -183,8 +229,7 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
                 className={selectedMood === option.key ? styles.choiceButtonSelected : styles.choiceButton}
                 onClick={() => {
                   if (isMoodLocked) return;
-                  setSelectedMood(option.key);
-                  setMoodLocked(true);
+                  void selectMood(option.key);
                 }}
                 aria-disabled={isMoodLocked && selectedMood !== option.key}
               >
@@ -195,6 +240,8 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
 
           {isMoodStepVisible && currentMood ? (
             <>
+              {selectingQuote ? <span className={styles.loadingText}>Vyberám citát podľa tvojej odpovede...</span> : null}
+              {quoteSelectionError ? <span className={styles.errorText}>{quoteSelectionError}</span> : null}
               {currentMood.key === 'LUBENE' ? (
                 <>
                   <p className={styles.flowTitle}>Aký bol posledný moment, kedy si sa cítila byť milovaná?</p>
@@ -299,7 +346,7 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
                 type="button"
                 className={styles.submitButton}
                 onClick={() => void submitResponse()}
-                disabled={!isAllowSubmit || saving}
+                disabled={!isAllowSubmit || saving || selectingQuote}
               >
                 {saving ? 'Ukladám...' : 'Odoslať'}
               </button>
@@ -322,15 +369,15 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
         </div>
       ) : null}
 
-      {isMediaOpen && media ? (
+      {isMediaOpen && effectiveMedia ? (
         <div className={styles.modalBackdrop} onClick={() => setIsMediaOpen(false)}>
           <div className={styles.modal} onClick={(event) => event.stopPropagation()}>
             <button type="button" className={styles.modalCloseButton} onClick={() => setIsMediaOpen(false)}>
               <X size={16} />
             </button>
-            <img src={media.mediaDataUrl} alt={media.mediaAlt ?? quote} className={styles.modalImage} />
-            {media.mediaDescription ? <p className={styles.modalDescription}>{media.mediaDescription}</p> : null}
-            <p className={styles.modalQuote}>{quote}</p>
+            <img src={effectiveMedia.mediaDataUrl ?? ''} alt={effectiveMedia.mediaAlt ?? effectiveQuote} className={styles.modalImage} />
+            {effectiveMedia.mediaDescription ? <p className={styles.modalDescription}>{effectiveMedia.mediaDescription}</p> : null}
+            <p className={styles.modalQuote}>{effectiveQuote}</p>
           </div>
         </div>
       ) : null}

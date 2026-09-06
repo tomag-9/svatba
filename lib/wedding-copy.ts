@@ -138,7 +138,9 @@ async function readStoredCountdownLines(): Promise<CountdownLineEntry[]> {
 async function readAllCountdownLines(): Promise<CountdownLineEntry[]> {
   await syncFileLinesIntoDb();
   const lines = await readStoredCountdownLines();
-  return lines.length > 0 ? Array.from(new Map(lines.map((line) => [line.text, line])).values()) : fallbackAngieCountdownLines;
+  return lines.length > 0
+    ? Array.from(new Map(lines.map((line) => [line.text, line])).values())
+    : fallbackAngieCountdownLines.map((line) => ({ ...line, category: 'BASIC' }));
 }
 
 function parseCountdownLines(text: string) {
@@ -216,37 +218,11 @@ async function writeCountdownCycleState(state: CountdownCycleState) {
 export async function resetCountdownForToday() {
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
-  const lines = await readAllCountdownLines();
-  const textLines = lines.map((line) => line.text);
-  const dayKey = getLocalDayKey();
   const state = await readCountdownCycleState();
-  const deckKey = 'SHARED';
-  const deck = state.decks[deckKey] ?? {
-    knownLines: [...textLines],
-    order: [...textLines],
-    index: 0,
-    cycle: 0,
-    currentDayKey: null,
-    currentLine: null
-  };
 
-  syncDeckWithLines(deck, textLines);
-
-  if (textLines.length > 0) {
-    const currentIndex = deck.currentLine ? deck.order.indexOf(deck.currentLine) : -1;
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % deck.order.length : Math.min(deck.index, deck.order.length - 1);
-    const selectedText = deck.order[nextIndex] ?? textLines[0];
-
-    deck.index = nextIndex + 1;
-    if (deck.index >= deck.order.length) {
-      deck.cycle += 1;
-      deck.index = 0;
-    }
-
-    deck.currentDayKey = dayKey;
-    deck.currentLine = selectedText;
-    deck.knownLines = [...textLines];
-    state.decks[deckKey] = deck;
+  for (const deck of Object.values(state.decks)) {
+    deck.currentDayKey = null;
+    deck.currentLine = null;
   }
 
   await prisma.$transaction(async (tx) => {
@@ -265,7 +241,71 @@ export async function resetCountdownForToday() {
     });
   });
 
-  return { resetAt: startOfToday, nextLine: deck.currentLine };
+  return { resetAt: startOfToday, nextLine: null };
+}
+
+export function countdownCategoryForMood(mood: string) {
+  switch (mood) {
+    case 'LUBENE':
+    case 'LOYAL':
+      return 'ROMANTIC';
+    case 'HORNY':
+    case 'SEXY':
+      return 'EROTIC';
+    case 'FUNNY':
+      return 'FUNNY';
+    case 'COMFORT':
+    case 'CALM':
+    default:
+      return 'BASIC';
+  }
+}
+
+export async function selectCountdownLineForMood(mood: string) {
+  const category = countdownCategoryForMood(mood);
+  const lines = (await readAllCountdownLines()).filter((line) => line.category === category);
+
+  if (lines.length === 0) {
+    return { category, line: null };
+  }
+
+  const deckKey = `CATEGORY:${category}`;
+  const dayKey = getLocalDayKey();
+  const state = await readCountdownCycleState();
+  const deck = state.decks[deckKey] ?? {
+    knownLines: [],
+    order: [],
+    index: 0,
+    cycle: 0,
+    currentDayKey: null,
+    currentLine: null
+  };
+
+  syncDeckWithLines(deck, lines.map((line) => line.text));
+
+  if (deck.currentDayKey === dayKey && deck.currentLine) {
+    const currentLine = lines.find((line) => line.text === deck.currentLine) ?? null;
+    state.decks[deckKey] = deck;
+    await writeCountdownCycleState(state);
+    return { category, line: currentLine };
+  }
+
+  if (deck.index >= deck.order.length) {
+    deck.cycle += 1;
+    deck.order = lines.map((line) => line.text);
+    deck.index = 0;
+  }
+
+  const selectedText = deck.order[deck.index] ?? lines[0].text;
+  const selectedLine = lines.find((line) => line.text === selectedText) ?? lines[0];
+  deck.index += 1;
+  deck.currentDayKey = dayKey;
+  deck.currentLine = selectedLine.text;
+  deck.knownLines = lines.map((line) => line.text);
+  state.decks[deckKey] = deck;
+  await writeCountdownCycleState(state);
+
+  return { category, line: selectedLine };
 }
 
 function syncDeckWithLines(deck: CountdownDeckState, lines: string[]) {
@@ -350,7 +390,7 @@ export async function getWeddingCountdownCopy({ daysUntilWedding, role, slot = '
       : daysUntilWedding === 1
         ? 'Zajtra je svadba.'
         : `O ${daysUntilWedding} dní bude svadba.`;
-  const line = await pickLine(await selectLines());
+  const line = role === 'ANGIE' ? { text: '********', id: null } : await pickLine(await selectLines());
   const notification = getWeddingNotificationCopy(daysUntilWedding, isApproximate);
 
   return {
