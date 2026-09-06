@@ -17,6 +17,8 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    networks:
+      - app_network
 
   web:
     build:
@@ -39,9 +41,16 @@ services:
       WEB_PUSH_VAPID_PRIVATE_KEY: ${WEB_PUSH_VAPID_PRIVATE_KEY:-}
       INTERNAL_PUSH_SECRET: ${INTERNAL_PUSH_SECRET:-}
       TZ: Europe/Bratislava
+    networks:
+      - app_network
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
 volumes:
   postgres_data:
+
+networks:
+  app_network:
+    name: ${DOCKER_NETWORK_NAME:-svatba-app_default}
+    external: ${DOCKER_NETWORK_EXTERNAL:-false}
