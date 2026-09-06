@@ -1,36 +1,12 @@
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: svatba-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres-local-2026}
-      POSTGRES_DB: ${POSTGRES_DB:-svatba}
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-svatba}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    networks:
-      - app_network
-
   web:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: svatba-app
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "3001:3000"
+    expose:
+      - "3000"
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
@@ -41,16 +17,25 @@ services:
       WEB_PUSH_VAPID_PRIVATE_KEY: ${WEB_PUSH_VAPID_PRIVATE_KEY:-}
       INTERNAL_PUSH_SECRET: ${INTERNAL_PUSH_SECRET:-}
       TZ: Europe/Bratislava
-    networks:
-      - app_network
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-
-volumes:
-  postgres_data:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.routers.svatba-http.rule=Host(`at.tomag.xyz`)"
+      - "traefik.http.routers.svatba-http.entrypoints=web"
+      - "traefik.http.routers.svatba-http.service=svatba"
+      - "traefik.http.routers.svatba-https.rule=Host(`at.tomag.xyz`)"
+      - "traefik.http.routers.svatba-https.entrypoints=websecure"
+      - "traefik.http.routers.svatba-https.tls=true"
+      - "traefik.http.routers.svatba-https.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.svatba-https.service=svatba"
+      - "traefik.http.services.svatba.loadbalancer.server.port=3000"
+    networks:
+      - default
+      - dokploy-network
 
 networks:
-  app_network:
-    name: ${DOCKER_NETWORK_NAME:-svatba-app_default}
-    external: ${DOCKER_NETWORK_EXTERNAL:-false}
+  dokploy-network:
+    external: true
