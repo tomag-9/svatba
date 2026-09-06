@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Eye, EyeOff, ImageIcon, X } from 'lucide-react';
+import { Eye, EyeOff, X } from 'lucide-react';
 
 import styles from './countdown-quote-reveal.module.css';
 
@@ -70,7 +70,7 @@ function maskQuote(quote: string) {
 
 export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, quote, quoteId, media }: CountdownQuoteRevealProps) {
   const [isRevealed, setIsRevealed] = useState(false);
-  const [isMediaOpen, setIsMediaOpen] = useState(false);
+  const [isRevealModalOpen, setIsRevealModalOpen] = useState(false);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [answeredToday, setAnsweredToday] = useState(Boolean(hasAnsweredToday));
   const [moodLocked, setMoodLocked] = useState(false);
@@ -157,6 +157,7 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
 
       setAnsweredToday(true);
       setSubmitted(true);
+      setIsRevealModalOpen(true);
     } catch (error) {
       console.error(error);
     } finally {
@@ -164,7 +165,12 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
     }
   }
 
-  const isRoleVisibleText = role === 'TOMI' ? isRevealed : (isRevealed && (answeredToday || submitted));
+  const isRoleVisibleText = role === 'TOMI' ? isRevealed : false;
+  const displayedQuote = role === 'ANGIE'
+    ? 'A potom ****************'
+    : role === 'TOMI'
+      ? (answeredToday ? 'Angie už dnes odpovedala.' : 'Angie ešte neodpovedala na dnešnú otázku.')
+      : (isRoleVisibleText ? effectiveQuote : maskQuote(effectiveQuote));
   const shouldShowQuestions = role === 'ANGIE' && !answeredToday && isRevealed && !submitted;
   const isMoodStepVisible = role === 'ANGIE' && Boolean(selectedMood);
   const isMoodLocked = Boolean(selectedMood) || moodLocked;
@@ -182,38 +188,37 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
     <div className={styles.wrapper}>
       <div className={styles.quoteRow}>
         <p className={styles.quoteText}>
-          {role === 'ANGIE' && !answeredToday && isRevealed && !submitted ? maskQuote(effectiveQuote) : isRoleVisibleText ? effectiveQuote : maskQuote(effectiveQuote)}
+          {displayedQuote}
         </p>
 
         <div className={styles.actions}>
-          <button
-            className={styles.revealButton}
-            type="button"
-            aria-label={isRoleVisibleText ? 'Skryť citát' : 'Ukázať citát'}
-            title={isRoleVisibleText ? 'Skryť citát' : 'Ukázať citát'}
-            onClick={() => {
-              if (role === 'ANGIE' && !answeredToday) {
-                setIsRevealed(true);
-                return;
-              }
-              setIsRevealed((current) => !current);
-            }}
-          >
-            {isRoleVisibleText ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
-            <span>{role === 'ANGIE' && !answeredToday ? 'Odhaliť' : isRoleVisibleText ? 'Skryť' : 'Odhaliť'}</span>
-          </button>
-
-          {effectiveMedia ? (
+          {role === 'ANGIE' || (role === 'TOMI' && answeredToday) ? (
             <button
-              className={styles.iconButton}
+              className={styles.revealButton}
               type="button"
-              aria-label="Otvoriť fotku"
-              title="Otvoriť fotku"
-                  onClick={() => setIsMediaOpen(true)}
+              aria-label="Odhaliť citát"
+              title="Odhaliť citát"
+              onClick={() => {
+                if (role === 'TOMI') {
+                  setIsRevealModalOpen(true);
+                  return;
+                }
+
+                if (submitted && selectedQuote) {
+                  setIsRevealModalOpen(true);
+                  return;
+                }
+
+                if (!answeredToday) {
+                  setIsRevealed(true);
+                }
+              }}
             >
-              <ImageIcon size={18} aria-hidden="true" />
+              {isRoleVisibleText ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              <span>Odhaliť</span>
             </button>
           ) : null}
+
         </div>
       </div>
 
@@ -369,14 +374,18 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
         </div>
       ) : null}
 
-      {isMediaOpen && effectiveMedia ? (
-        <div className={styles.modalBackdrop} onClick={() => setIsMediaOpen(false)}>
+      {isRevealModalOpen ? (
+        <div className={styles.modalBackdrop} onClick={() => setIsRevealModalOpen(false)}>
           <div className={styles.modal} onClick={(event) => event.stopPropagation()}>
-            <button type="button" className={styles.modalCloseButton} onClick={() => setIsMediaOpen(false)}>
+            <button type="button" className={styles.modalCloseButton} onClick={() => setIsRevealModalOpen(false)}>
               <X size={16} />
             </button>
-            <img src={effectiveMedia.mediaDataUrl ?? ''} alt={effectiveMedia.mediaAlt ?? effectiveQuote} className={styles.modalImage} />
-            {effectiveMedia.mediaDescription ? <p className={styles.modalDescription}>{effectiveMedia.mediaDescription}</p> : null}
+            {effectiveMedia ? (
+              <>
+                <img src={effectiveMedia.mediaDataUrl ?? ''} alt={effectiveMedia.mediaAlt ?? effectiveQuote} className={styles.modalImage} />
+                {effectiveMedia.mediaDescription ? <p className={styles.modalDescription}>{effectiveMedia.mediaDescription}</p> : null}
+              </>
+            ) : null}
             <p className={styles.modalQuote}>{effectiveQuote}</p>
           </div>
         </div>

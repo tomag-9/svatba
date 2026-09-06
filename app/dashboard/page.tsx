@@ -30,15 +30,31 @@ export default async function DashboardPage() {
   const countdown = settings ? await getWeddingCountdownCopy({ daysUntilWedding, role, slot: getWeddingAlertSlot(), isApproximate: settings.weddingDateApproximate }) : null;
   const yesGuests = guests.filter((guest) => guest.attendance === 'YES').length;
   const maybeGuests = guests.filter((guest) => guest.attendance === 'MAYBE').length;
-  const hasAnsweredToday = role === 'ANGIE'
-    ? Boolean(await prisma.countdownRevealResponse.findFirst({
-        where: {
-          createdAt: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0))
-          }
-        }
-      }))
-    : false;
+  const todayResponse = await prisma.countdownRevealResponse.findFirst({
+    where: {
+      createdAt: {
+        gte: new Date(new Date().setHours(0, 0, 0, 0))
+      }
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { quoteId: true, quoteText: true }
+  });
+  const hasAnsweredToday = Boolean(todayResponse);
+  const todayQuote = todayResponse?.quoteId
+    ? await prisma.countdownLine.findUnique({
+        where: { id: todayResponse.quoteId },
+        select: { mediaDataUrl: true, mediaAlt: true, mediaDescription: true, mediaType: true }
+      })
+    : null;
+  const tomiMedia = todayQuote?.mediaDataUrl
+    ? {
+        mediaDataUrl: todayQuote.mediaDataUrl,
+        mediaAlt: todayQuote.mediaAlt,
+        mediaDescription: todayQuote.mediaDescription,
+        mediaType: todayQuote.mediaType
+      }
+    : null;
+  const tomiQuote = todayResponse?.quoteText ?? 'A potom ****************';
   const weddingDate = settings?.weddingDate
     ? new Intl.DateTimeFormat('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' }).format(settings.weddingDate)
     : 'Dátum nenastavený';
@@ -59,9 +75,9 @@ export default async function DashboardPage() {
           <CountdownQuoteReveal
             role={role}
             hasAnsweredToday={hasAnsweredToday}
-            quote={countdown.dailyLine}
-            quoteId={countdown.dailyQuoteId ?? undefined}
-            media={countdown.dailyMedia}
+            quote={role === 'TOMI' ? tomiQuote : countdown.dailyLine}
+            quoteId={role === 'TOMI' ? (todayResponse?.quoteId ?? undefined) : (countdown.dailyQuoteId ?? undefined)}
+            media={role === 'TOMI' ? tomiMedia : countdown.dailyMedia}
           />
         ) : (
           <p className="lede" style={{ marginTop: 8 }}>Odpočet sa zobrazí po uložení dátumu.</p>
