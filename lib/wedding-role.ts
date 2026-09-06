@@ -8,7 +8,9 @@ export function parseWeddingRole(value: unknown): WeddingRoleValue | null {
   return typeof value === 'string' && weddingRoleValues.includes(value as WeddingRoleValue) ? (value as WeddingRoleValue) : null;
 }
 
-export function getWeddingRole(value: unknown, fallback: WeddingRoleValue = 'TOMI') {
+export const WEDDING_ROLE_CHANGE_CODE = '1505';
+
+export function getWeddingRole(value: unknown, fallback: WeddingRoleValue = 'ANGIE') {
   return parseWeddingRole(value) ?? fallback;
 }
 

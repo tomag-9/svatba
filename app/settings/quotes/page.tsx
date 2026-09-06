@@ -5,7 +5,7 @@ import QuotesAdminClient from '@/components/quotes-admin-client';
 export default async function QuotesAdminPage() {
   const hdr = await headers();
   const cookieHeader = hdr.get('cookie') ?? null;
-  const role = getWeddingRole(getWeddingRoleFromCookieHeader(cookieHeader), 'TOMI');
+  const role = getWeddingRole(getWeddingRoleFromCookieHeader(cookieHeader), 'ANGIE');
 
   if (role !== 'TOMI') {
     return (

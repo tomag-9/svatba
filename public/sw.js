@@ -1,4 +1,4 @@
-const CACHE_NAME = 'svatba-pwa-v2';
+const CACHE_NAME = 'svatba-pwa-v3';
 const URLS_TO_CACHE = ['/', '/dashboard', '/timeline', '/tasks', '/invitees', '/finance', '/offline'];
 
 const DAY_MS = 1000 * 60 * 60 * 24;

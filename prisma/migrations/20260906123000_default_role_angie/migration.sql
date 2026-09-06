@@ -1,0 +1,2 @@
+ALTER TABLE "WeddingSettings" ALTER COLUMN "role" SET DEFAULT 'ANGIE';
+ALTER TABLE "PushSubscription" ALTER COLUMN "role" SET DEFAULT 'ANGIE';

@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } }),
     prisma.task.findMany({ where: { status: { not: 'DONE' } }, orderBy: [{ deadline: 'asc' }, { priority: 'desc' }] })
   ]);
-  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), settings?.role ?? 'TOMI');
+  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), settings?.role ?? 'ANGIE');
 
   const daysUntilWedding = settings?.weddingDate ? Math.ceil((settings.weddingDate.getTime() - Date.now()) / DAY_MS) : null;
   const alertLeadDays = settings?.alertLeadDays ?? 3;

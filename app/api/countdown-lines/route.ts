@@ -5,26 +5,36 @@ import { appendAngieCountdownLine, syncFileLinesIntoDb } from '@/lib/wedding-cop
 import { getWeddingRole, getWeddingRoleFromCookieHeader } from '@/lib/wedding-role';
 import { prisma } from '@/lib/prisma';
 
+function normalizeCategory(value?: unknown) {
+  const candidate = typeof value === 'string' ? value.trim().toUpperCase() : 'BASIC';
+  if (candidate === 'EROTIC' || candidate === 'FUNNY' || candidate === 'ROMANTIC' || candidate === 'BASIC') {
+    return candidate;
+  }
+  return 'BASIC';
+}
+
 export async function POST(request: Request) {
-  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'TOMI');
+  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'ANGIE');
 
   if (role !== 'TOMI') {
     return NextResponse.json({ error: 'Nové citáty môže pridávať iba Tomi.' }, { status: 403 });
   }
 
-  const body = await readJsonBody<{ line?: unknown; mediaDataUrl?: unknown; mediaAlt?: unknown; mediaDescription?: unknown; mediaType?: unknown }>(request);
+  const body = await readJsonBody<{ line?: unknown; mediaDataUrl?: unknown; mediaAlt?: unknown; mediaDescription?: unknown; mediaType?: unknown; category?: unknown }>(request);
   const line = typeof body?.line === 'string' ? body.line : '';
   const mediaDataUrl = typeof body?.mediaDataUrl === 'string' ? body.mediaDataUrl.trim() : '';
   const mediaAlt = typeof body?.mediaAlt === 'string' ? body.mediaAlt.trim() : '';
   const mediaDescription = typeof body?.mediaDescription === 'string' ? body.mediaDescription.trim() : '';
   const mediaType = typeof body?.mediaType === 'string' ? body.mediaType.trim() : 'image';
+  const category = normalizeCategory(body?.category);
 
   try {
     const savedLine = await appendAngieCountdownLine(line, {
       mediaDataUrl: mediaDataUrl || null,
       mediaAlt: mediaAlt || null,
       mediaDescription: mediaDescription || null,
-      mediaType: mediaType || 'image'
+      mediaType: mediaType || 'image',
+      category
     });
     return NextResponse.json({ ok: true, line: savedLine });
   } catch (error) {
@@ -39,50 +49,61 @@ export async function GET() {
 
     const dbLines = await prisma.countdownLine.findMany({
       where: { blocked: false },
-      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { createdAt: 'asc' }],
       select: {
         id: true,
         text: true,
         sortOrder: true,
+        category: true,
         mediaDataUrl: true,
         mediaAlt: true,
         mediaDescription: true,
         mediaType: true
       }
-    } as any);
+    });
 
-    return NextResponse.json({ lines: dbLines });
+    const categoryOrder = ['BASIC', 'FUNNY', 'ROMANTIC', 'EROTIC'];
+    const sortedLines = dbLines.sort((a, b) => {
+      const categoryDiff = categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category);
+      if (categoryDiff !== 0) return categoryDiff;
+      if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+      return a.text.localeCompare(b.text, 'sk');
+    });
+
+    return NextResponse.json({ lines: sortedLines });
   } catch (err) {
     return NextResponse.json({ error: 'Nepodarilo sa načítať citáty.' }, { status: 500 });
   }
 }
 
 export async function PATCH(request: Request) {
-  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'TOMI');
+  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'ANGIE');
 
   if (role !== 'TOMI') {
     return NextResponse.json({ error: 'Nevyhovujúce oprávnenie.' }, { status: 403 });
   }
 
-  const body = await readJsonBody<{ id?: unknown; text?: unknown; order?: unknown; mediaDataUrl?: unknown; mediaAlt?: unknown; mediaDescription?: unknown; mediaType?: unknown }>(request);
+  const body = await readJsonBody<{ id?: unknown; text?: unknown; order?: unknown; mediaDataUrl?: unknown; mediaAlt?: unknown; mediaDescription?: unknown; mediaType?: unknown; category?: unknown }>(request);
   const id = typeof body?.id === 'string' ? body.id : '';
   const text = typeof body?.text === 'string' ? body.text.trim().replace(/\s+/g, ' ') : '';
   const mediaDataUrl = typeof body?.mediaDataUrl === 'string' ? body.mediaDataUrl.trim() : undefined;
   const mediaAlt = typeof body?.mediaAlt === 'string' ? body.mediaAlt.trim() : undefined;
   const mediaDescription = typeof body?.mediaDescription === 'string' ? body.mediaDescription.trim() : undefined;
   const mediaType = typeof body?.mediaType === 'string' ? body.mediaType.trim() : undefined;
+  const category = normalizeCategory(body?.category);
   const order = Array.isArray(body?.order) ? body.order.filter((value): value is string => typeof value === 'string') : null;
 
   if (order && order.length > 0) {
     try {
       const uniqueOrder = [...new Set(order)];
+      const reorderCategory = normalizeCategory(body?.category);
       const records = await prisma.countdownLine.findMany({
-        where: { id: { in: uniqueOrder }, blocked: false },
+        where: { id: { in: uniqueOrder }, blocked: false, category: reorderCategory as any },
         select: { id: true }
       });
 
       if (records.length !== uniqueOrder.length) {
-        return NextResponse.json({ error: 'Niektoré citáty neexistujú.' }, { status: 400 });
+        return NextResponse.json({ error: 'Niektoré citáty neexistujú v tejto kategórii.' }, { status: 400 });
       }
 
       await prisma.$transaction(
@@ -119,8 +140,18 @@ export async function PATCH(request: Request) {
       mediaDataUrl: typeof mediaDataUrl === 'string' ? (mediaDataUrl || null) : undefined,
       mediaAlt: typeof mediaAlt === 'string' ? (mediaAlt || null) : undefined,
       mediaDescription: typeof mediaDescription === 'string' ? (mediaDescription || null) : undefined,
-      mediaType: typeof mediaType === 'string' ? (mediaType || 'image') : undefined
+      mediaType: typeof mediaType === 'string' ? (mediaType || 'image') : undefined,
+      category: category as any
     };
+
+    const categoryChanged = existingRecord.category !== category;
+    const lastInCategory = categoryChanged
+      ? await prisma.countdownLine.findFirst({
+          where: { blocked: false, category: category as any },
+          orderBy: { sortOrder: 'desc' },
+          select: { sortOrder: true }
+        })
+      : null;
 
     await prisma.countdownLine.update({
       where: { id },
@@ -128,7 +159,8 @@ export async function PATCH(request: Request) {
         text,
         source: 'settings',
         blocked: false,
-        ...mediaUpdate
+        ...mediaUpdate,
+        sortOrder: categoryChanged ? (lastInCategory?.sortOrder ?? 0) + 1 : undefined
       }
     });
 
@@ -146,7 +178,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'TOMI');
+  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'ANGIE');
 
   if (role !== 'TOMI') {
     return NextResponse.json({ error: 'Nevyhovujúce oprávnenie.' }, { status: 403 });

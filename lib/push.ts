@@ -61,7 +61,7 @@ export async function storePushSubscription(subscription: PushSubscriptionInput)
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
       expirationTime: subscription.expirationTime ?? null,
-      role: subscription.role ?? 'TOMI'
+      role: subscription.role ?? 'ANGIE'
     }
   });
 }

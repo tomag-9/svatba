@@ -19,7 +19,7 @@ export default async function DashboardPage() {
     prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } }),
     cookies()
   ]);
-  const role = getWeddingRole(cookieStore.get(WEDDING_ROLE_COOKIE)?.value, settings?.role ?? 'TOMI');
+  const role = getWeddingRole(cookieStore.get(WEDDING_ROLE_COOKIE)?.value, settings?.role ?? 'ANGIE');
 
   const totalSpent = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   const openTasks = tasks.filter((task) => task.status !== 'DONE').length;
@@ -30,6 +30,15 @@ export default async function DashboardPage() {
   const countdown = settings ? await getWeddingCountdownCopy({ daysUntilWedding, role, slot: getWeddingAlertSlot(), isApproximate: settings.weddingDateApproximate }) : null;
   const yesGuests = guests.filter((guest) => guest.attendance === 'YES').length;
   const maybeGuests = guests.filter((guest) => guest.attendance === 'MAYBE').length;
+  const hasAnsweredToday = role === 'ANGIE'
+    ? Boolean(await prisma.countdownRevealResponse.findFirst({
+        where: {
+          createdAt: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0))
+          }
+        }
+      }))
+    : false;
   const weddingDate = settings?.weddingDate
     ? new Intl.DateTimeFormat('sk-SK', { day: 'numeric', month: 'numeric', year: 'numeric' }).format(settings.weddingDate)
     : 'Dátum nenastavený';
@@ -47,7 +56,13 @@ export default async function DashboardPage() {
           {daysUntilWedding === null ? '—' : Math.max(daysUntilWedding, 0)} <span>dní</span>
         </div>
         {countdown?.dailyLine ? (
-          <CountdownQuoteReveal quote={countdown.dailyLine} media={countdown.dailyMedia} />
+          <CountdownQuoteReveal
+            role={role}
+            hasAnsweredToday={hasAnsweredToday}
+            quote={countdown.dailyLine}
+            quoteId={countdown.dailyQuoteId ?? undefined}
+            media={countdown.dailyMedia}
+          />
         ) : (
           <p className="lede" style={{ marginTop: 8 }}>Odpočet sa zobrazí po uložení dátumu.</p>
         )}

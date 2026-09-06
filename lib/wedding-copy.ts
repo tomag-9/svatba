@@ -27,7 +27,9 @@ type CountdownDeckState = {
 };
 
 type CountdownLineEntry = {
+  id?: string | null;
   text: string;
+  category?: string | null;
   mediaDataUrl?: string | null;
   mediaAlt?: string | null;
   mediaDescription?: string | null;
@@ -41,6 +43,7 @@ type CountdownCycleState = {
 const angieCountdownLinesPath = path.join(process.cwd(), 'data', 'angie-countdown-lines.txt');
 const angieCountdownReloadMarker = path.join(process.cwd(), 'data', 'angie-countdown-lines.reload');
 const countdownCycleStateKey = 'shared-countdown-lines';
+const categoryOrder = ['BASIC', 'FUNNY', 'ROMANTIC', 'EROTIC'];
 
 const fallbackAngieCountdownLines: CountdownLineEntry[] = [
   { text: 'A potom už budeš slobodne neslobodná.' },
@@ -70,17 +73,27 @@ export async function syncFileLinesIntoDb() {
   const fileLines = readAngieCountdownLinesFromFile();
   if (fileLines.length === 0) return;
 
-  try {
-    await prisma.countdownLine.createMany({
-      data: fileLines.map((text) => ({ text, source: 'file', blocked: false })),
-      skipDuplicates: true
-    });
-  } catch {
-    for (const text of fileLines) {
-      try {
-        await prisma.countdownLine.upsert({ where: { text }, create: { text, source: 'file', blocked: false }, update: {} });
-      } catch {}
-    }
+  for (const text of fileLines) {
+    try {
+      const existing = await prisma.countdownLine.findUnique({ where: { text }, select: { id: true } });
+      if (existing) continue;
+
+      const lastOrder = await prisma.countdownLine.findFirst({
+        where: { blocked: false, category: 'BASIC' },
+        orderBy: { sortOrder: 'desc' },
+        select: { sortOrder: true }
+      });
+
+      await prisma.countdownLine.create({
+        data: {
+          text,
+          source: 'file',
+          blocked: false,
+          category: 'BASIC',
+          sortOrder: (lastOrder?.sortOrder ?? 0) + 1
+        }
+      });
+    } catch {}
   }
 }
 
@@ -90,7 +103,10 @@ async function readStoredCountdownLines(): Promise<CountdownLineEntry[]> {
       where: { blocked: false },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       select: {
+        id: true,
         text: true,
+        category: true,
+        sortOrder: true,
         mediaDataUrl: true,
         mediaAlt: true,
         mediaDescription: true,
@@ -98,13 +114,22 @@ async function readStoredCountdownLines(): Promise<CountdownLineEntry[]> {
       }
     });
 
-    return lines.map((line) => ({
-      text: line.text,
-      mediaDataUrl: line.mediaDataUrl ?? null,
-      mediaAlt: line.mediaAlt ?? null,
-      mediaDescription: line.mediaDescription ?? null,
-      mediaType: line.mediaType ?? 'image'
-    }));
+    return lines
+      .sort((a, b) => {
+        const categoryDiff = categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category);
+        if (categoryDiff !== 0) return categoryDiff;
+        if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+        return a.text.localeCompare(b.text, 'sk');
+      })
+      .map((line) => ({
+        id: line.id,
+        text: line.text,
+        category: line.category,
+        mediaDataUrl: line.mediaDataUrl ?? null,
+        mediaAlt: line.mediaAlt ?? null,
+        mediaDescription: line.mediaDescription ?? null,
+        mediaType: line.mediaType ?? 'image'
+      }));
   } catch {
     return [];
   }
@@ -170,40 +195,6 @@ function getLocalDayKey(date = new Date()) {
   }).format(date);
 }
 
-function hashString(value: string) {
-  let hash = 2166136261;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return hash >>> 0;
-}
-
-function seededRandom(seed: number) {
-  let value = seed || 1;
-
-  return () => {
-    value = Math.imul(value ^ (value >>> 15), 1 | value);
-    value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
-
-    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffleLines(lines: string[], seed: number) {
-  const shuffled = [...lines];
-  const random = seededRandom(seed);
-
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
-
-  return shuffled;
-}
-
 async function readCountdownCycleState(): Promise<CountdownCycleState> {
   try {
     const record = await prisma.countdownCycleState.findUnique({ where: { key: countdownCycleStateKey } });
@@ -220,6 +211,61 @@ async function writeCountdownCycleState(state: CountdownCycleState) {
     update: { state },
     create: { key: countdownCycleStateKey, state }
   });
+}
+
+export async function resetCountdownForToday() {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const lines = await readAllCountdownLines();
+  const textLines = lines.map((line) => line.text);
+  const dayKey = getLocalDayKey();
+  const state = await readCountdownCycleState();
+  const deckKey = 'SHARED';
+  const deck = state.decks[deckKey] ?? {
+    knownLines: [...textLines],
+    order: [...textLines],
+    index: 0,
+    cycle: 0,
+    currentDayKey: null,
+    currentLine: null
+  };
+
+  syncDeckWithLines(deck, textLines);
+
+  if (textLines.length > 0) {
+    const currentIndex = deck.currentLine ? deck.order.indexOf(deck.currentLine) : -1;
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % deck.order.length : Math.min(deck.index, deck.order.length - 1);
+    const selectedText = deck.order[nextIndex] ?? textLines[0];
+
+    deck.index = nextIndex + 1;
+    if (deck.index >= deck.order.length) {
+      deck.cycle += 1;
+      deck.index = 0;
+    }
+
+    deck.currentDayKey = dayKey;
+    deck.currentLine = selectedText;
+    deck.knownLines = [...textLines];
+    state.decks[deckKey] = deck;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.countdownRevealResponse.deleteMany({
+      where: {
+        createdAt: {
+          gte: startOfToday
+        }
+      }
+    });
+
+    await tx.countdownCycleState.upsert({
+      where: { key: countdownCycleStateKey },
+      update: { state },
+      create: { key: countdownCycleStateKey, state }
+    });
+  });
+
+  return { resetAt: startOfToday, nextLine: deck.currentLine };
 }
 
 function syncDeckWithLines(deck: CountdownDeckState, lines: string[]) {
@@ -311,6 +357,7 @@ export async function getWeddingCountdownCopy({ daysUntilWedding, role, slot = '
     title: label,
     subtitle: isApproximate ? 'Orientačný countdown beží.' : daysUntilWedding === 0 ? 'Je to tu.' : slot === 'evening' ? 'Večerný countdown beží.' : 'Countdown beží.',
     dailyLine: line.text,
+    dailyQuoteId: line.id ?? null,
     dailyMedia: line.mediaDataUrl ? {
       mediaDataUrl: line.mediaDataUrl,
       mediaAlt: line.mediaAlt ?? line.text,
@@ -358,6 +405,7 @@ export async function appendAngieCountdownLine(
     mediaAlt?: string | null;
     mediaDescription?: string | null;
     mediaType?: string | null;
+    category?: string | null;
   }
 ) {
   const cleanedLine = line.trim().replace(/\s+/g, ' ');
@@ -377,8 +425,12 @@ export async function appendAngieCountdownLine(
     throw new Error('Tento citát už existuje.');
   }
 
+  const categoryValue = options?.category && ['BASIC', 'FUNNY', 'ROMANTIC', 'EROTIC'].includes(options.category)
+    ? options.category
+    : 'BASIC';
+
   const lastOrder = await prisma.countdownLine.findFirst({
-    where: { blocked: false },
+    where: { blocked: false, category: categoryValue as any },
     orderBy: { sortOrder: 'desc' },
     select: { sortOrder: true }
   });
@@ -387,6 +439,7 @@ export async function appendAngieCountdownLine(
     data: {
       text: cleanedLine,
       sortOrder: (lastOrder?.sortOrder ?? 0) + 1,
+      category: categoryValue as any,
       mediaDataUrl: options?.mediaDataUrl ?? null,
       mediaAlt: options?.mediaAlt ?? null,
       mediaDescription: options?.mediaDescription ?? null,
@@ -422,7 +475,7 @@ export async function applyCountdownLineNowByText(lineText: string) {
   const state = await readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
     knownLines: [...textLines],
-    order: shuffleLines(textLines, hashString(`${deckKey}:0`)),
+    order: [...textLines],
     index: 0,
     cycle: 0,
     currentDayKey: null,

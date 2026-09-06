@@ -38,7 +38,7 @@ model WeddingSettings {
   budgetTarget        Decimal?     @db.Decimal(12, 2)
   currency            String       @default("EUR")
   venueName           String?
-  role                WeddingRole   @default(TOMI)
+  role                WeddingRole   @default(ANGIE)
   notes               String?
   deadlineAlertsEnabled Boolean     @default(false)
   alertLeadDays       Int          @default(3)
@@ -52,7 +52,7 @@ model PushSubscription {
   p256dh         String
   auth           String
   expirationTime Int?
-  role           WeddingRole @default(TOMI)
+  role           WeddingRole @default(ANGIE)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -63,20 +63,44 @@ model PushDeliveryLog {
   createdAt DateTime @default(now())
 }
 
+enum CountdownLineCategory {
+  BASIC
+  FUNNY
+  ROMANTIC
+  EROTIC
+}
+
 model CountdownLine {
-  id               String   @id @default(cuid())
-  text             String   @unique
-  source           String   @default("settings")
-  blocked          Boolean  @default(false)
-  sortOrder        Int      @default(0)
+  id               String                  @id @default(cuid())
+  text             String                  @unique
+  source           String                  @default("settings")
+  blocked          Boolean                 @default(false)
+  sortOrder        Int                     @default(0)
+  category         CountdownLineCategory   @default(BASIC)
   mediaDataUrl     String?
   mediaAlt         String?
   mediaDescription String?
-  mediaType        String?  @default("image")
-  createdAt        DateTime @default(now())
+  mediaType        String?                 @default("image")
+  createdAt        DateTime                @default(now())
 
   @@index([createdAt])
-  @@index([sortOrder])
+  @@index([category, sortOrder])
+  @@index([category])
+}
+
+model CountdownRevealResponse {
+  id          String                 @id @default(cuid())
+  quoteId     String?
+  quoteText   String
+  mood        String
+  category    CountdownLineCategory? @default(BASIC)
+  method      String?
+  bodyPart    String?
+  moment      String?
+  funnyLength String?
+  loyalty     String?
+  answers     Json?
+  createdAt   DateTime               @default(now())
 }
 
 model CountdownCycleState {

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { weddingRoleLabels } from '@/lib/labels';
-import { WEDDING_ROLE_COOKIE, type WeddingRoleValue } from '@/lib/wedding-role';
+import { WEDDING_ROLE_CHANGE_CODE, WEDDING_ROLE_COOKIE, type WeddingRoleValue } from '@/lib/wedding-role';
 
 type SettingsValues = {
   weddingDate?: string;
@@ -23,12 +23,26 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [quoteDraft, setQuoteDraft] = useState('');
   const [quoteStatus, setQuoteStatus] = useState<string | null>(null);
+  const [resetStatus, setResetStatus] = useState<string | null>(null);
   const [isSavingQuote, setIsSavingQuote] = useState(false);
-  const [role, setRole] = useState<WeddingRoleValue>(initialValues?.role ?? 'TOMI');
+  const [isResettingCountdown, setIsResettingCountdown] = useState(false);
+  const [role, setRole] = useState<WeddingRoleValue>(initialValues?.role ?? 'ANGIE');
+  const [roleChangeCode, setRoleChangeCode] = useState<string | null>(null);
 
   function persistRole(nextRole: WeddingRoleValue) {
+    if (nextRole !== role) {
+      const code = window.prompt('Na zmenu roly napíš kód.');
+      if (code !== WEDDING_ROLE_CHANGE_CODE) {
+        setError('Nesprávny kód. Rola ostala nezmenená.');
+        return;
+      }
+      setRoleChangeCode(code);
+    }
+
+    setError(null);
     setRole(nextRole);
     document.cookie = `${WEDDING_ROLE_COOKIE}=${encodeURIComponent(nextRole)}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+    router.refresh();
   }
 
   function urlBase64ToUint8Array(base64String: string) {
@@ -138,6 +152,7 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
         venueName: formData.get('venueName'),
         notes: formData.get('notes') || null,
         role,
+        roleCode: roleChangeCode,
         deadlineAlertsEnabled: formData.get('deadlineAlertsEnabled') === 'on',
         alertLeadDays: formData.get('alertLeadDays')
       })
@@ -184,6 +199,33 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
     setQuoteDraft('');
     setQuoteStatus('Citát je uložený v databáze a zaradený na koniec aktuálneho cyklu.');
     router.refresh();
+  }
+
+  async function resetCountdown() {
+    const confirmed = window.confirm('Resetovať dnešný citát? Angie dostane nový citát, znovu sa odošle pushka a dnešnú odpoveď bude musieť vyplniť odznova.');
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setResetStatus(null);
+    setIsResettingCountdown(true);
+
+    try {
+      const response = await fetch('/api/countdown-lines/reset', { method: 'POST' });
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? 'Reset zlyhal.');
+      }
+
+      setResetStatus('Dnešný citát je resetnutý. Angie dostala pushku, má nový citát a musí odpovedať odznova.');
+      router.refresh();
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : 'Reset zlyhal.');
+    } finally {
+      setIsResettingCountdown(false);
+    }
   }
 
   return (
@@ -241,6 +283,26 @@ export function SettingsForm({ initialValues }: { initialValues?: SettingsValues
             >
               Otvoriť správu citátov
             </button>
+          </div>
+          <div className="field">
+            <button
+              className="button button-ghost"
+              type="button"
+              onClick={() => router.push('/settings/reveal-history')}
+            >
+              Otvoriť históriu odpovedí
+            </button>
+          </div>
+          <div className="field">
+            <button
+              className="button button-ghost"
+              type="button"
+              onClick={() => void resetCountdown()}
+              disabled={isResettingCountdown}
+            >
+              {isResettingCountdown ? 'Resetujem...' : 'Resetovať dnešný citát'}
+            </button>
+            {resetStatus ? <p className="lede">{resetStatus}</p> : null}
           </div>
         </section>
       ) : null}

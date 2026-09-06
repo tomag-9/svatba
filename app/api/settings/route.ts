@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseString, readJsonBody } from '@/lib/request';
-import { WEDDING_ROLE_COOKIE, parseWeddingRole } from '@/lib/wedding-role';
+import { WEDDING_ROLE_CHANGE_CODE, WEDDING_ROLE_COOKIE, getWeddingRole, getWeddingRoleFromCookieHeader, parseWeddingRole } from '@/lib/wedding-role';
 
 export async function GET() {
   const settings = await prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } });
@@ -17,9 +17,18 @@ export async function PATCH(request: Request) {
     venueName?: unknown;
     notes?: unknown;
     role?: unknown;
+    roleCode?: unknown;
     deadlineAlertsEnabled?: unknown;
     alertLeadDays?: unknown;
   }>(request);
+
+  const role = parseWeddingRole(body?.role);
+  const currentRole = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'ANGIE');
+  const roleCode = typeof body?.roleCode === 'string' ? body.roleCode : '';
+
+  if (role && role !== currentRole && roleCode !== WEDDING_ROLE_CHANGE_CODE) {
+    return NextResponse.json({ error: 'Na zmenu roly treba správny kód.' }, { status: 403 });
+  }
 
   const existing = await prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } });
   const data = {
@@ -38,7 +47,6 @@ export async function PATCH(request: Request) {
     : await prisma.weddingSettings.create({ data: { ...data, currency: data.currency ?? 'EUR' } });
 
   const response = NextResponse.json({ settings });
-  const role = parseWeddingRole(body?.role);
 
   if (role) {
     response.cookies.set(WEDDING_ROLE_COOKIE, role, {

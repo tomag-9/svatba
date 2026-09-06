@@ -1,0 +1,249 @@
+.wrapper {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.quoteRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.quoteText {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink, #1f2937);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.iconButton,
+.revealButton {
+  appearance: none;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  border: 1px solid rgba(88, 61, 39, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.54);
+  color: var(--accent, #312e81);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  position: relative;
+  z-index: 2;
+  touch-action: manipulation;
+}
+
+.iconButton {
+  width: 38px;
+}
+
+.revealButton {
+  gap: 7px;
+  width: auto;
+  padding: 0 12px;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.iconButton:hover,
+.revealButton:hover {
+  background: rgba(255, 255, 255, 0.76);
+  transform: translateY(-1px);
+}
+
+.flow {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.flowTitle {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted, #6b7280);
+  line-height: 1.45;
+}
+
+.choiceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.choiceButton,
+.choiceButtonSelected {
+  appearance: none;
+  border-radius: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(17, 24, 39, 0.1);
+  background: #fff;
+  color: var(--ink, #1f2937);
+  cursor: pointer;
+  font-weight: 700;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  position: relative;
+  z-index: 2;
+  touch-action: manipulation;
+}
+
+.choiceButtonSelected {
+  border-color: rgba(88, 61, 39, 0.26);
+  background: rgba(88, 61, 39, 0.08);
+}
+
+.choiceButton:hover,
+.choiceButtonSelected:hover {
+  transform: translateY(-1px);
+}
+
+.fakeDisabledChoice {
+  cursor: pointer;
+}
+
+.textInput {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 12px;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  background: rgba(255, 255, 255, 0.75);
+  padding: 11px 12px;
+  font-size: 0.96rem;
+  color: var(--ink, #1f2937);
+  box-sizing: border-box;
+}
+
+.submitButton {
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #111827 0%, #312e81 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 14px;
+  cursor: pointer;
+  min-height: 46px;
+}
+
+.success {
+  display: grid;
+  gap: 6px;
+  color: var(--muted, #6b7280);
+  font-size: 0.9rem;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.72);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+@media (max-width: 640px) {
+  .wrapper {
+    gap: 10px;
+  }
+
+  .quoteRow {
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .flow {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .choiceGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .choiceButton,
+  .choiceButtonSelected {
+    padding: 10px 8px;
+    font-size: 0.88rem;
+    text-align: center;
+  }
+
+  .submitButton {
+    width: 100%;
+  }
+}
+
+.modal {
+  position: relative;
+  width: min(560px, 92vw);
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(17, 24, 39, 0.25);
+}
+
+.modalCloseButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.72);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.modalImage {
+  width: 100%;
+  max-height: 68vh;
+  object-fit: cover;
+  display: block;
+  background: #f3f4f6;
+}
+
+.modalDescription,
+.modalQuote {
+  margin: 0;
+  padding: 14px 16px 0;
+  color: #1f2937;
+  line-height: 1.6;
+}
+
+.modalQuote {
+  padding-bottom: 16px;
+  font-weight: 700;
+}

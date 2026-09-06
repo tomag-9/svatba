@@ -11,7 +11,7 @@ export default async function SettingsPage() {
     prisma.weddingSettings.findFirst({ orderBy: { createdAt: 'desc' } }),
     cookies()
   ]);
-  const role = getWeddingRole(cookieStore.get(WEDDING_ROLE_COOKIE)?.value, settings?.role ?? 'TOMI');
+  const role = getWeddingRole(cookieStore.get(WEDDING_ROLE_COOKIE)?.value, settings?.role ?? 'ANGIE');
 
   return (
     <AppShell
