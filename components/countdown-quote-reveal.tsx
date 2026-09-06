@@ -41,6 +41,8 @@ const hornyMethods = [
   { value: 'K', label: 'K' },
   { value: 'V', label: 'V' },
   { value: 'P', label: 'P' },
+  { value: '69', label: '69' },
+  { value: 'MAST', label: '🫲🍆🍑🫱' },
   { value: 'Žiadnu', label: 'Žiadnu' },
   { value: 'NO_SEX', label: 'Žiadnu, no-sex', disabled: true }
 ];

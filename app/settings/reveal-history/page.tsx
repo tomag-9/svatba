@@ -1,8 +1,39 @@
 import { headers } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { getWeddingRole, getWeddingRoleFromCookieHeader } from '@/lib/wedding-role';
+import styles from './reveal-history.module.css';
 
 export const dynamic = 'force-dynamic';
+
+const moodLabels: Record<string, string> = {
+  LUBENE: 'Zaľúbené',
+  HORNY: 'Horny',
+  SEXY: 'Sexi',
+  FUNNY: 'Funny',
+  LOYAL: 'Oddane',
+  COMFORT: 'Pohodovo',
+  CALM: 'Spokojne'
+};
+
+const categoryLabels: Record<string, string> = {
+  BASIC: 'Basic',
+  FUNNY: 'Funny',
+  ROMANTIC: 'Romantic',
+  EROTIC: 'Erotic'
+};
+
+const answerLabels: Record<string, string> = {
+  method: 'Metóda',
+  bodyPart: 'Časť tela',
+  moment: 'Moment',
+  funnyLength: 'Dĺžka vtipu',
+  loyalty: 'Oddanosť'
+};
+
+function formatAnswer(key: string, value: string) {
+  if (key === 'method' && value === 'MAST') return '🫲🍆🍑🫱';
+  return value;
+}
 
 export default async function RevealHistoryPage() {
   const hdr = await headers();
@@ -11,10 +42,12 @@ export default async function RevealHistoryPage() {
 
   if (role !== 'TOMI') {
     return (
-      <main className="page-shell">
-        <div className="card">
+      <main className={styles.page}>
+        <div className={styles.container}>
+          <div className={styles.empty}>
           <h2>Prístup zamietnutý</h2>
           <p>Túto históriu môže vidieť len Tomi.</p>
+          </div>
         </div>
       </main>
     );
@@ -39,39 +72,51 @@ export default async function RevealHistoryPage() {
   });
 
   return (
-    <main className="page-shell">
-      <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+    <main className={styles.page}>
+      <div className={styles.container}>
+        <header className={styles.header}>
           <div>
-            <div className="eyebrow">Admin</div>
-            <h1 style={{ margin: '6px 0 0', fontSize: '2rem' }}>História reveal odpovedí</h1>
+            <p className={styles.eyebrow}>Tomi · súkromné</p>
+            <h1 className={styles.title}>História odpovedí</h1>
           </div>
-        </div>
+          <span className={styles.count}>{items.length} {items.length === 1 ? 'odpoveď' : 'odpovedí'}</span>
+        </header>
 
-        <div className="list">
+        <div className={styles.list}>
           {items.length === 0 ? (
-            <div className="row">
-              <div className="row-title">Zatiaľ nie sú žiadne odpovede.</div>
+            <div className={styles.empty}>
+              Zatiaľ nie sú žiadne odpovede.
             </div>
           ) : (
             items.map((item) => (
-              <div className="row" key={item.id} style={{ alignItems: 'flex-start' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="row-title">{new Date(item.createdAt).toLocaleString('sk-SK')}</div>
-                  <div className="compact-meta">mood: {item.mood} · category: {item.category ?? 'BASIC'}</div>
-                  <div style={{ marginTop: 6, color: '#111827', lineHeight: 1.6 }}>{item.quoteText}</div>
-                  <div style={{ marginTop: 8, display: 'grid', gap: 4, color: '#374151', fontSize: 13 }}>
-                    {item.method ? <div>method: {item.method}</div> : null}
-                    {item.bodyPart ? <div>bodyPart: {item.bodyPart}</div> : null}
-                    {item.moment ? <div>moment: {item.moment}</div> : null}
-                    {item.funnyLength ? <div>funnyLength: {item.funnyLength}</div> : null}
-                    {item.loyalty ? <div>loyalty: {item.loyalty}</div> : null}
-                    {item.answers && Object.keys(item.answers as Record<string, unknown>).length > 0 ? (
-                      <div>answers: {JSON.stringify(item.answers)}</div>
-                    ) : null}
+              <article className={styles.card} key={item.id}>
+                <div className={styles.meta}>
+                  <time className={styles.date} dateTime={item.createdAt.toISOString()}>
+                    {new Date(item.createdAt).toLocaleString('sk-SK')}
+                  </time>
+                  <div className={styles.tags}>
+                    <span className={styles.tag}>{moodLabels[item.mood] ?? item.mood}</span>
+                    <span className={`${styles.tag} ${styles.tagCategory}`}>{categoryLabels[item.category ?? 'BASIC'] ?? item.category ?? 'Basic'}</span>
                   </div>
                 </div>
-              </div>
+                <p className={styles.quoteLabel}>Citát</p>
+                <p className={styles.quote}>{item.quoteText}</p>
+                <div className={styles.answers}>
+                  <p className={styles.answersLabel}>Odpovede</p>
+                  {([
+                    ['method', item.method],
+                    ['bodyPart', item.bodyPart],
+                    ['moment', item.moment],
+                    ['funnyLength', item.funnyLength],
+                    ['loyalty', item.loyalty]
+                  ] as Array<[string, string | null]>).filter(([, value]) => value).map(([key, value]) => (
+                    <div className={styles.answer} key={key}>
+                      <span className={styles.answerName}>{answerLabels[key] ?? key}</span>
+                      <span className={styles.answerValue}>{formatAnswer(key, value ?? '')}</span>
+                    </div>
+                  ))}
+                </div>
+              </article>
             ))
           )}
         </div>
