@@ -137,6 +137,11 @@
   font-weight: 750;
 }
 
+.question {
+  color: #806d61;
+  font-weight: 750;
+}
+
 .answerValue {
   min-width: 0;
   color: #2d1f17;

@@ -22,17 +22,41 @@ const categoryLabels: Record<string, string> = {
   EROTIC: 'Erotic'
 };
 
-const answerLabels: Record<string, string> = {
-  method: 'Metóda',
-  bodyPart: 'Časť tela',
-  moment: 'Moment',
-  funnyLength: 'Dĺžka vtipu',
-  loyalty: 'Oddanosť'
-};
-
 function formatAnswer(key: string, value: string) {
   if (key === 'method' && value === 'MAST') return '🫲🍆🍑🫱';
   return value;
+}
+
+function getQuestionAnswers(item: {
+  mood: string;
+  method: string | null;
+  bodyPart: string | null;
+  moment: string | null;
+  funnyLength: string | null;
+  loyalty: string | null;
+}) {
+  const pairs: Array<{ question: string; answer: string; key: string }> = [
+    { question: 'Ako sa dnes cítiš?', answer: moodLabels[item.mood] ?? item.mood, key: 'mood' }
+  ];
+
+  if (item.mood === 'LUBENE' && item.moment) {
+    pairs.push({ question: 'Aký bol posledný moment, kedy si sa cítila byť milovaná?', answer: item.moment, key: 'moment' });
+  }
+  if (item.mood === 'HORNY' && item.method) {
+    pairs.push({ question: 'Zvolila by si na dnes metódu?', answer: formatAnswer('method', item.method), key: 'method' });
+  }
+  if (item.mood === 'SEXY') {
+    if (item.bodyPart) pairs.push({ question: 'Ktorá časť môjho tela je podľa teba najviac sexi?', answer: item.bodyPart, key: 'bodyPart' });
+    if (item.moment) pairs.push({ question: 'Kedy sa cítiš najviac sexi?', answer: item.moment, key: 'sexy-moment' });
+  }
+  if (item.mood === 'FUNNY' && item.funnyLength) {
+    pairs.push({ question: 'Chceš vidieť krátky alebo dlhý vtip?', answer: item.funnyLength, key: 'funnyLength' });
+  }
+  if (item.mood === 'LOYAL' && item.loyalty) {
+    pairs.push({ question: 'Budeš mi oddane žehliť, prať a iné?', answer: item.loyalty, key: 'loyalty' });
+  }
+
+  return pairs;
 }
 
 export default async function RevealHistoryPage() {
@@ -102,17 +126,11 @@ export default async function RevealHistoryPage() {
                 <p className={styles.quoteLabel}>Citát</p>
                 <p className={styles.quote}>{item.quoteText}</p>
                 <div className={styles.answers}>
-                  <p className={styles.answersLabel}>Odpovede</p>
-                  {([
-                    ['method', item.method],
-                    ['bodyPart', item.bodyPart],
-                    ['moment', item.moment],
-                    ['funnyLength', item.funnyLength],
-                    ['loyalty', item.loyalty]
-                  ] as Array<[string, string | null]>).filter(([, value]) => value).map(([key, value]) => (
-                    <div className={styles.answer} key={key}>
-                      <span className={styles.answerName}>{answerLabels[key] ?? key}</span>
-                      <span className={styles.answerValue}>{formatAnswer(key, value ?? '')}</span>
+                  <p className={styles.answersLabel}>Otázky a odpovede</p>
+                  {getQuestionAnswers(item).map((pair) => (
+                    <div className={styles.answer} key={pair.key}>
+                      <span className={styles.question}>{pair.question}</span>
+                      <span className={styles.answerValue}>{pair.answer}</span>
                     </div>
                   ))}
                 </div>

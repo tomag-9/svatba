@@ -7,7 +7,7 @@ import { applyCountdownLineNowByText, getWeddingNotificationCopy } from '@/lib/w
 import { broadcastPushNotification } from '@/lib/push';
 
 export async function POST(request: Request) {
-  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'ANGIE');
+  const role = getWeddingRole(getWeddingRoleFromCookieHeader(request.headers.get('cookie')), 'TOMI');
 
   if (role !== 'TOMI') {
     return NextResponse.json({ error: 'Nevyhovajúce oprávnenie.' }, { status: 403 });
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const payload = {
       title: notification.title,
-      body: notification.body,
+      body: record.text,
       url: '/dashboard#countdown'
     };
 
