@@ -1,6 +1,7 @@
 FROM node:22-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN apk add --no-cache tzdata
 
 FROM base AS deps
 COPY package.json package-lock.json ./
