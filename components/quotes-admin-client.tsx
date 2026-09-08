@@ -21,7 +21,6 @@ type Quote = {
   mediaDescription?: string | null;
   mediaType?: string | null;
 };
-type PreviewQuote = Quote & { day: number };
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
@@ -91,7 +90,6 @@ function ActionButton({ children, onClick, variant = 'secondary', fullWidth = fa
 export default function QuotesAdminClient() {
   const router = useRouter();
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const count = quotes.length;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -107,7 +105,10 @@ export default function QuotesAdminClient() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-  const previewQuotes: PreviewQuote[] = quotes.map((quote, index) => ({ ...quote, day: index + 1 }));
+  const previewGroups = categories.map((category) => ({
+    ...category,
+    quotes: quotes.filter((quote) => (quote.category ?? 'BASIC') === category.key)
+  }));
 
   async function load() {
     setLoading(true);
@@ -382,18 +383,32 @@ export default function QuotesAdminClient() {
 
         <section className={styles.sectionCard}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}><Sparkles size={18} /> Náhľad poradia po dňoch</h2>
-            <span className={styles.sectionHint}>Dátum 1 = prvý citát</span>
+            <h2 className={styles.sectionTitle}><Sparkles size={18} /> Náhľad rotácie</h2>
+            <span className={styles.sectionHint}>Mood vyberie kategóriu, potom ide ďalší citát v jej poradí</span>
           </div>
 
-          {previewQuotes.length === 0 ? (
+          {quotes.length === 0 ? (
             <p className={styles.emptyState}>Počkáme na prvý citát.</p>
           ) : (
-            <div className={styles.previewList}>
-              {previewQuotes.map((quote) => (
-                <div key={quote.id} className={styles.previewRow}>
-                  <div className={styles.previewDay}>Deň {quote.day}</div>
-                  <div className={styles.previewText}>{quote.text}</div>
+            <div className={styles.previewGroups}>
+              {previewGroups.map((group) => (
+                <div key={group.key} className={styles.previewGroup}>
+                  <div className={styles.previewGroupHeader}>
+                    <span>{group.label}</span>
+                    <span>{group.quotes.length}</span>
+                  </div>
+                  {group.quotes.length === 0 ? (
+                    <p className={styles.emptyStateSmall}>Žiadne citáty v tejto kategórii.</p>
+                  ) : (
+                    <div className={styles.previewList}>
+                      {group.quotes.map((quote, index) => (
+                        <div key={quote.id} className={styles.previewRow}>
+                          <div className={styles.previewDay}>#{index + 1}</div>
+                          <div className={styles.previewText}>{quote.text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

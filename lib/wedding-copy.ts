@@ -281,7 +281,7 @@ export async function selectCountdownLineForMood(mood: string) {
     currentLine: null
   };
 
-  syncDeckWithLines(deck, lines.map((line) => line.text));
+  syncCategoryDeckWithCurrentOrder(deck, lines.map((line) => line.text));
 
   if (deck.currentDayKey === dayKey && deck.currentLine) {
     const currentLine = lines.find((line) => line.text === deck.currentLine) ?? null;
@@ -306,6 +306,58 @@ export async function selectCountdownLineForMood(mood: string) {
   await writeCountdownCycleState(state);
 
   return { category, line: selectedLine };
+}
+
+export async function applyCountdownCategoryRotationOrder(category: string, orderedTexts: string[]) {
+  const categoryValue = ['BASIC', 'FUNNY', 'ROMANTIC', 'EROTIC'].includes(category)
+    ? category
+    : 'BASIC';
+  const nextOrder = [...new Set(orderedTexts.map((text) => text.trim()).filter(Boolean))];
+  if (nextOrder.length === 0) return;
+
+  const deckKey = `CATEGORY:${categoryValue}`;
+  const state = await readCountdownCycleState();
+  const currentDeck = state.decks[deckKey];
+  const currentLine = currentDeck?.currentLine && nextOrder.includes(currentDeck.currentLine)
+    ? currentDeck.currentLine
+    : null;
+
+  state.decks[deckKey] = {
+    knownLines: [...nextOrder],
+    order: [...nextOrder],
+    index: currentLine ? Math.min(nextOrder.indexOf(currentLine) + 1, nextOrder.length) : 0,
+    cycle: currentDeck?.cycle ?? 0,
+    currentDayKey: currentLine ? currentDeck?.currentDayKey ?? null : null,
+    currentLine
+  };
+
+  await writeCountdownCycleState(state);
+}
+
+function syncCategoryDeckWithCurrentOrder(deck: CountdownDeckState, lines: string[]) {
+  const nextOrder = [...lines];
+  const visibleLines = new Set(nextOrder);
+  const previousCurrentLine = deck.currentLine && visibleLines.has(deck.currentLine)
+    ? deck.currentLine
+    : null;
+  const previousNextLine = deck.order[deck.index] && visibleLines.has(deck.order[deck.index])
+    ? deck.order[deck.index]
+    : null;
+
+  deck.order = nextOrder;
+  deck.knownLines = [...nextOrder];
+
+  if (previousCurrentLine) {
+    deck.currentLine = previousCurrentLine;
+    deck.index = Math.min(nextOrder.indexOf(previousCurrentLine) + 1, nextOrder.length);
+    return;
+  }
+
+  deck.currentLine = null;
+  deck.currentDayKey = null;
+  deck.index = previousNextLine
+    ? nextOrder.indexOf(previousNextLine)
+    : Math.min(deck.index, nextOrder.length);
 }
 
 function syncDeckWithLines(deck: CountdownDeckState, lines: string[]) {

@@ -117,6 +117,17 @@
   transform: translateY(-1px);
 }
 
+.choiceButton:disabled,
+.choiceButtonSelected:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.choiceButton:disabled:hover,
+.choiceButtonSelected:disabled:hover {
+  transform: none;
+}
+
 .fakeDisabledChoice {
   cursor: pointer;
 }

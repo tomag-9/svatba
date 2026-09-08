@@ -275,6 +275,38 @@
   gap: 10px;
 }
 
+.previewGroups {
+  display: grid;
+  gap: 14px;
+}
+
+.previewGroup {
+  display: grid;
+  gap: 10px;
+}
+
+.previewGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.previewGroupHeader span:last-child {
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12px;
+}
+
 .previewRow {
   display: grid;
   grid-template-columns: 72px 1fr;

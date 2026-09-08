@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Eye, EyeOff, X } from 'lucide-react';
 
 import styles from './countdown-quote-reveal.module.css';
@@ -86,6 +86,7 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
   const [selectedQuote, setSelectedQuote] = useState<SelectedQuote | null>(null);
   const [selectingQuote, setSelectingQuote] = useState(false);
   const [quoteSelectionError, setQuoteSelectionError] = useState<string | null>(null);
+  const moodSelectionLockedRef = useRef(false);
 
   const currentMood = useMemo(() => moodOptions.find((option) => option.key === selectedMood) ?? null, [selectedMood]);
   const effectiveQuote = selectedQuote?.text ?? quote;
@@ -96,8 +97,9 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
     : media;
 
   async function selectMood(mood: string) {
-    if (isMoodLocked || selectingQuote) return;
+    if (moodSelectionLockedRef.current || isMoodLocked || selectingQuote) return;
 
+    moodSelectionLockedRef.current = true;
     setSelectedMood(mood);
     setMoodLocked(true);
     setSelectingQuote(true);
@@ -176,6 +178,9 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
   const shouldShowQuestions = role === 'ANGIE' && !answeredToday && isRevealed && !submitted;
   const isMoodStepVisible = role === 'ANGIE' && Boolean(selectedMood);
   const isMoodLocked = Boolean(selectedMood) || moodLocked;
+  const visibleMoodOptions = selectedMood
+    ? moodOptions.filter((option) => option.key === selectedMood)
+    : moodOptions;
   const isAllowSubmit = Boolean(selectedMood && selectedQuote) && (
     selectedMood === 'COMFORT' ||
     selectedMood === 'CALM' ||
@@ -229,7 +234,7 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
           <p className={styles.flowTitle}>Ako sa dnes cítiš?</p>
 
           <div className={styles.choiceGrid}>
-            {moodOptions.map((option) => (
+            {visibleMoodOptions.map((option) => (
               <button
                 key={option.key}
                 type="button"
@@ -238,7 +243,8 @@ export function CountdownQuoteReveal({ role = 'TOMI', hasAnsweredToday = false, 
                   if (isMoodLocked) return;
                   void selectMood(option.key);
                 }}
-                aria-disabled={isMoodLocked && selectedMood !== option.key}
+                disabled={isMoodLocked}
+                aria-disabled={isMoodLocked}
               >
                 {option.emoji} {option.label}
               </button>

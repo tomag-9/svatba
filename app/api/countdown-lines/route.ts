@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { readJsonBody } from '@/lib/request';
-import { appendAngieCountdownLine, syncFileLinesIntoDb } from '@/lib/wedding-copy';
+import { appendAngieCountdownLine, applyCountdownCategoryRotationOrder, syncFileLinesIntoDb } from '@/lib/wedding-copy';
 import { getWeddingRole, getWeddingRoleFromCookieHeader } from '@/lib/wedding-role';
 import { prisma } from '@/lib/prisma';
 
@@ -99,7 +99,7 @@ export async function PATCH(request: Request) {
       const reorderCategory = normalizeCategory(body?.category);
       const records = await prisma.countdownLine.findMany({
         where: { id: { in: uniqueOrder }, blocked: false, category: reorderCategory as any },
-        select: { id: true }
+        select: { id: true, text: true }
       });
 
       if (records.length !== uniqueOrder.length) {
@@ -114,6 +114,8 @@ export async function PATCH(request: Request) {
           })
         )
       );
+      const recordsById = new Map(records.map((record) => [record.id, record.text]));
+      await applyCountdownCategoryRotationOrder(reorderCategory, uniqueOrder.map((quoteId) => recordsById.get(quoteId) ?? ''));
 
       return NextResponse.json({ ok: true });
     } catch (err) {
