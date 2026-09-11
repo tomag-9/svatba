@@ -197,6 +197,35 @@ function getLocalDayKey(date = new Date()) {
   }).format(date);
 }
 
+function getCountdownCycleDayKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Bratislava',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hour12: false
+  }).formatToParts(date);
+
+  const values = Object.fromEntries(
+    parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value])
+  );
+
+  const year = Number(values.year);
+  const month = Number(values.month);
+  const day = Number(values.day);
+  const hour = Number(values.hour);
+
+  const cycleDateMs = Date.UTC(year, month - 1, day - (hour < 19 ? 1 : 0));
+
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date(cycleDateMs));
+}
+
 async function readCountdownCycleState(): Promise<CountdownCycleState> {
   try {
     const record = await prisma.countdownCycleState.findUnique({ where: { key: countdownCycleStateKey } });
@@ -270,7 +299,7 @@ export async function selectCountdownLineForMood(mood: string) {
   }
 
   const deckKey = `CATEGORY:${category}`;
-  const dayKey = getLocalDayKey();
+  const dayKey = getCountdownCycleDayKey();
   const state = await readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
     knownLines: [],
@@ -378,7 +407,7 @@ function syncDeckWithLines(deck: CountdownDeckState, lines: string[]) {
 
 async function pickLine(lines: CountdownLineEntry[]) {
   const deckKey = 'SHARED';
-  const dayKey = getLocalDayKey();
+  const dayKey = getCountdownCycleDayKey();
   const state = await readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
     knownLines: [...lines.map((line) => line.text)],
@@ -563,7 +592,7 @@ export async function applyCountdownLineNowByText(lineText: string) {
   const textLines = lines.map((line) => line.text);
 
   const deckKey = 'SHARED';
-  const dayKey = getLocalDayKey();
+  const dayKey = getCountdownCycleDayKey();
   const state = await readCountdownCycleState();
   const deck = state.decks[deckKey] ?? {
     knownLines: [...textLines],
